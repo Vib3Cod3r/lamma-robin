@@ -1,9 +1,11 @@
 /**
  * Weather App - Initialization and refresh logic
  */
+/* exported onLangChange */
 
 const REFRESH_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
 const THEME_STORAGE_KEY = 'hk-weather-theme';
+const FERRY_VISIBLE_KEY = 'hk-weather-ferry-visible';
 
 function getPreferredTheme() {
   const stored = localStorage.getItem(THEME_STORAGE_KEY);
@@ -39,16 +41,75 @@ function initTheme() {
     btn.addEventListener('click', () => {
       const current = document.documentElement.getAttribute('data-theme');
       applyTheme(current === 'light' ? 'dark' : 'light');
+      closeHeaderMenu();
     });
   }
+}
+
+function closeHeaderMenu() {
+  const menu = document.getElementById('headerMenu');
+  const toggle = document.getElementById('menuToggle');
+  if (menu) menu.classList.remove('is-open');
+  if (toggle) toggle.setAttribute('aria-expanded', 'false');
+}
+
+function initMenuToggle() {
+  const toggle = document.getElementById('menuToggle');
+  const menu = document.getElementById('headerMenu');
+  if (!toggle || !menu) return;
+
+  toggle.addEventListener('click', () => {
+    const isOpen = menu.classList.toggle('is-open');
+    toggle.setAttribute('aria-expanded', isOpen);
+    toggle.setAttribute('aria-label', isOpen ? 'Close menu' : 'Open menu');
+  });
+
+  document.getElementById('langSelect')?.addEventListener('change', closeHeaderMenu);
+
+  document.addEventListener('click', (e) => {
+    if (menu.classList.contains('is-open') && !menu.contains(e.target) && !toggle.contains(e.target)) {
+      closeHeaderMenu();
+    }
+  });
 }
 
 // Apply theme before first paint to avoid flash
 initTheme();
 
+function getFerryVisible() {
+  return localStorage.getItem(FERRY_VISIBLE_KEY) !== 'false';
+}
+
+function applyFerryVisibility(visible) {
+  const tracker = document.getElementById('ferry-ais');
+  const bar = document.getElementById('ferryHiddenBar');
+  if (tracker) tracker.style.display = visible ? '' : 'none';
+  if (bar) bar.hidden = visible;
+  if (visible && typeof invalidateFerryAISMapSize === 'function') {
+    invalidateFerryAISMapSize();
+  }
+}
+
+function initFerryToggle() {
+  applyFerryVisibility(getFerryVisible());
+  const hideBtn = document.getElementById('ferryTrackerHide');
+  const showBtn = document.getElementById('ferryWidgetShow');
+  if (hideBtn) {
+    hideBtn.addEventListener('click', () => {
+      applyFerryVisibility(false);
+      localStorage.setItem(FERRY_VISIBLE_KEY, 'false');
+    });
+  }
+  if (showBtn) {
+    showBtn.addEventListener('click', () => {
+      applyFerryVisibility(true);
+      localStorage.setItem(FERRY_VISIBLE_KEY, 'true');
+    });
+  }
+}
+
 async function loadWeather() {
   const header = document.querySelector('.header');
-  const main = document.querySelector('.widgets');
 
   try {
     header?.classList.add('loading');
@@ -77,6 +138,8 @@ function refreshFerryAIS() {
 
 document.addEventListener('DOMContentLoaded', () => {
   if (typeof initLang === 'function') initLang();
+  initMenuToggle();
+  initFerryToggle();
   loadWeather();
   setInterval(loadWeather, REFRESH_INTERVAL_MS);
   setInterval(updateFerryCountdown, 1000);

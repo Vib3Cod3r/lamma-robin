@@ -1,6 +1,7 @@
 /**
  * Populate weather widgets from API data
  */
+/* exported updateFerryAISOnly, invalidateFerryAISMapSize, updateWidgets */
 
 let radarMapInstance = null;
 let radarOverlayLayer = null;
@@ -117,15 +118,58 @@ function parseSunriseSunset(srs) {
   if (!srs?.data?.length || !srs?.fields?.length) return { sunrise: null, sunset: null };
   const row = srs.data[0];
   if (!Array.isArray(row)) return { sunrise: null, sunset: null };
-  
+
   const fields = srs.fields;
   const riseIdx = fields.findIndex(f => f && (f === 'RISE' || f.toLowerCase().includes('rise')));
   const setIdx = fields.findIndex(f => f && (f === 'SET' || f.toLowerCase().includes('set')));
-  
+
   return {
     sunrise: riseIdx >= 0 ? row[riseIdx] : null,
     sunset: setIdx >= 0 ? row[setIdx] : null
   };
+}
+
+/**
+ * Parse HKO time string ("0645" or "06:45") to Date on the given day
+ */
+function timeStringToDate(timeStr, refDate) {
+  if (!timeStr || !refDate) return null;
+  const s = String(timeStr).trim().replace(':', '');
+  const match = s.match(/^(\d{2})(\d{2})$/);
+  if (!match) return null;
+  const d = new Date(refDate);
+  d.setHours(parseInt(match[1], 10), parseInt(match[2], 10), 0, 0);
+  return d;
+}
+
+/** Sun status and position: { status, emoji, progress } for sky strip (0 = sunrise, 1 = sunset) */
+function getSunStatus(sunriseStr, sunsetStr) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const sunrise = timeStringToDate(sunriseStr, today);
+  const sunset = timeStringToDate(sunsetStr, today);
+
+  const fallback = { status: 'day', emoji: '☀️', progress: 0.5 };
+  if (!sunrise || !sunset) return fallback;
+
+  const sunriseMs = sunrise.getTime();
+  const sunsetMs = sunset.getTime();
+  const nowMs = now.getTime();
+  const dayLength = sunsetMs - sunriseMs;
+  const TWILIGHT_MINS = 25;
+
+  if (nowMs < sunriseMs) {
+    const minsToRise = (sunriseMs - nowMs) / 60000;
+    if (minsToRise <= TWILIGHT_MINS) return { status: 'sunrise', emoji: '🌅', progress: 0 };
+    return { status: 'night', emoji: '🌙', progress: 0 };
+  }
+  if (nowMs > sunsetMs) {
+    const minsSinceSet = (nowMs - sunsetMs) / 60000;
+    if (minsSinceSet <= TWILIGHT_MINS) return { status: 'sunset', emoji: '🌇', progress: 1 };
+    return { status: 'night', emoji: '🌙', progress: 1 };
+  }
+  const progress = dayLength > 0 ? (nowMs - sunriseMs) / dayLength : 0.5;
+  return { status: 'day', emoji: '☀️', progress };
 }
 
 /**
@@ -136,15 +180,84 @@ function parseMoonRiseSet(mrs) {
   if (!mrs?.data?.length || !mrs?.fields?.length) return { moonrise: null, moonset: null };
   const row = mrs.data[0];
   if (!Array.isArray(row)) return { moonrise: null, moonset: null };
-  
+
   const fields = mrs.fields;
   const riseIdx = fields.findIndex(f => f && (f === 'RISE' || f.toLowerCase().includes('rise')));
   const setIdx = fields.findIndex(f => f && (f === 'SET' || f.toLowerCase().includes('set')));
-  
+
   return {
     moonrise: riseIdx >= 0 ? row[riseIdx] : null,
     moonset: setIdx >= 0 ? row[setIdx] : null
   };
+}
+
+/** Synodic month in days (new moon to new moon). */
+const SYNODIC_MONTH_DAYS = 29.530588;
+
+/** Reference new moon (UTC): 2000-01-06 18:14 */
+const NEW_MOON_REF_UTC = new Date(Date.UTC(2000, 0, 6, 18, 14, 0, 0));
+
+/**
+ * Moon phase from date: returns { phase, emoji }.
+ * Phase keys: new, waxing_crescent, first_quarter, waxing_gibbous, full, waning_gibbous, last_quarter, waning_crescent
+ */
+function getMoonPhase(date) {
+  const d = date ? new Date(date) : new Date();
+  const daysSince = (d.getTime() - NEW_MOON_REF_UTC.getTime()) / (24 * 60 * 60 * 1000);
+  const cycle = ((daysSince % SYNODIC_MONTH_DAYS) + SYNODIC_MONTH_DAYS) % SYNODIC_MONTH_DAYS;
+  const t = cycle / SYNODIC_MONTH_DAYS; // 0 = new, 0.5 = full
+
+  const phases = [
+    { max: 0.03, phase: 'new', emoji: '🌑' },
+    { max: 0.22, phase: 'waxing_crescent', emoji: '🌒' },
+    { max: 0.28, phase: 'first_quarter', emoji: '🌓' },
+    { max: 0.47, phase: 'waxing_gibbous', emoji: '🌔' },
+    { max: 0.53, phase: 'full', emoji: '🌕' },
+    { max: 0.72, phase: 'waning_gibbous', emoji: '🌖' },
+    { max: 0.78, phase: 'last_quarter', emoji: '🌗' },
+    { max: 0.97, phase: 'waning_crescent', emoji: '🌘' },
+    { max: 1, phase: 'new', emoji: '🌑' }
+  ];
+  for (const p of phases) {
+    if (t <= p.max) return { phase: p.phase, emoji: p.emoji };
+  }
+  return { phase: 'new', emoji: '🌑' };
+}
+
+/**
+ * Moon position status and progress for sky strip (0 = moonrise, 1 = moonset).
+ * Handles moonset next day (when moonset time is earlier than moonrise).
+ */
+function getMoonStatus(moonriseStr, moonsetStr) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const moonrise = timeStringToDate(moonriseStr, today);
+  let moonset = timeStringToDate(moonsetStr, today);
+  if (!moonrise || !moonset) return { status: 'unknown', emoji: '🌙', progress: 0.5 };
+
+  if (moonset.getTime() <= moonrise.getTime()) {
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    moonset = timeStringToDate(moonsetStr, tomorrow);
+  }
+  const riseMs = moonrise.getTime();
+  const setMs = moonset.getTime();
+  const nowMs = now.getTime();
+  const upLength = setMs - riseMs;
+  const TWILIGHT_MINS = 20;
+
+  if (nowMs < riseMs) {
+    const minsToRise = (riseMs - nowMs) / 60000;
+    if (minsToRise <= TWILIGHT_MINS) return { status: 'rising', emoji: '🌙', progress: 0 };
+    return { status: 'below', emoji: '🌙', progress: 0 };
+  }
+  if (nowMs > setMs) {
+    const minsSinceSet = (nowMs - setMs) / 60000;
+    if (minsSinceSet <= TWILIGHT_MINS) return { status: 'setting', emoji: '🌙', progress: 1 };
+    return { status: 'below', emoji: '🌙', progress: 1 };
+  }
+  const progress = upLength > 0 ? (nowMs - riseMs) / upLength : 0.5;
+  return { status: 'up', emoji: '🌙', progress };
 }
 
 /**
@@ -170,7 +283,6 @@ function parseTides(hlt) {
     const timeStr = String(timeRaw).length === 4
       ? `${String(timeRaw).slice(0, 2)}:${String(timeRaw).slice(2)}`
       : String(timeRaw);
-    const h = parseFloat(height);
     const type = (i % 2 === 0) ? 'Low' : 'High';
     result.push({ timeStr, height: String(height), type });
   }
@@ -186,6 +298,14 @@ function getPressureFromRYES(ryes) {
     if (key.toLowerCase().includes('pressure')) return ryes[key];
   }
   return null;
+}
+
+/**
+ * Tell Leaflet to recalculate the ferry AIS map size. Call when the ferry section becomes
+ * visible (e.g. after being hidden) so the map tiles render correctly.
+ */
+function invalidateFerryAISMapSize() {
+  if (ferryAisMapInstance) ferryAisMapInstance.invalidateSize();
 }
 
 /**
@@ -374,15 +494,54 @@ function updateWidgets(data) {
     }
   }
 
-  // Sun
+  // Sun (times + status + sky strip)
   const sun = parseSunriseSunset(data.srs);
   document.getElementById('sunriseValue').textContent = sun.sunrise ?? '--';
   document.getElementById('sunsetValue').textContent = sun.sunset ?? '--';
+  const sunStatus = getSunStatus(sun.sunrise, sun.sunset);
+  const sunStatusEmojiEl = document.getElementById('sunStatusEmoji');
+  const sunStatusTextEl = document.getElementById('sunStatusText');
+  const sunPositionIconEl = document.getElementById('sunPositionIcon');
+  if (sunStatusEmojiEl) sunStatusEmojiEl.textContent = sunStatus.emoji;
+  if (sunStatusTextEl) {
+    const key = 'sun.status.' + sunStatus.status;
+    sunStatusTextEl.textContent = typeof t === 'function' ? t(key) : sunStatus.status;
+    sunStatusTextEl.setAttribute('data-i18n', key);
+  }
+  if (sunPositionIconEl) {
+    sunPositionIconEl.textContent = sunStatus.emoji;
+    sunPositionIconEl.style.left = (sunStatus.progress * 100) + '%';
+  }
 
-  // Moon
+  // Moon (phase + position + sky strip)
   const moon = parseMoonRiseSet(data.mrs);
   document.getElementById('moonriseValue').textContent = moon.moonrise ?? '--';
   document.getElementById('moonsetValue').textContent = moon.moonset ?? '--';
+  const moonPhase = getMoonPhase();
+  const moonPhaseEmojiEl = document.getElementById('moonPhaseEmoji');
+  const moonPhaseTextEl = document.getElementById('moonPhaseText');
+  if (moonPhaseEmojiEl) moonPhaseEmojiEl.textContent = moonPhase.emoji;
+  if (moonPhaseTextEl) {
+    const phaseKey = 'moon.phase.' + moonPhase.phase;
+    moonPhaseTextEl.textContent = typeof t === 'function' ? t(phaseKey) : moonPhase.phase;
+    moonPhaseTextEl.setAttribute('data-i18n', phaseKey);
+  }
+  const moonStatus = getMoonStatus(moon.moonrise, moon.moonset);
+  const moonStatusEmojiEl = document.getElementById('moonStatusEmoji');
+  const moonStatusTextEl = document.getElementById('moonStatusText');
+  const moonPositionIconEl = document.getElementById('moonPositionIcon');
+  if (moonStatusEmojiEl) moonStatusEmojiEl.textContent = moonStatus.emoji;
+  if (moonStatusTextEl) {
+    const statusKey = 'moon.status.' + moonStatus.status;
+    moonStatusTextEl.textContent = typeof t === 'function' ? t(statusKey) : moonStatus.status;
+    moonStatusTextEl.setAttribute('data-i18n', statusKey);
+  }
+  if (moonPositionIconEl) {
+    const isBelow = moonStatus.status === 'below';
+    moonPositionIconEl.style.visibility = isBelow ? 'hidden' : '';
+    moonPositionIconEl.textContent = moonStatus.emoji;
+    moonPositionIconEl.style.left = (moonStatus.progress * 100) + '%';
+  }
 
   // Ferry (Lamma: both directions)
   const ferryToYSW = data.ferry?.toYungShueWan;

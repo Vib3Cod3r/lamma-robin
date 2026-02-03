@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hong Kong Weather</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 </head>
@@ -11,13 +14,20 @@
   <div class="app">
     <header class="header">
       <div class="header-controls">
-        <label for="langSelect" class="sr-only">Language</label>
-        <select id="langSelect" class="lang-select" aria-label="Select language">
-          <option value="en">🇬🇧 English</option>
-          <option value="zh-Hans">🇨🇳 简体中文 (Simplified Chinese)</option>
-          <option value="zh-Hant">🇭🇰 繁體中文 (Traditional Chinese)</option>
-        </select>
-        <button type="button" class="theme-toggle" id="themeToggle" aria-label="Switch to light theme">☀️ Light</button>
+        <button type="button" class="hamburger" id="menuToggle" aria-label="Open menu" aria-expanded="false" aria-controls="headerMenu">
+          <span class="hamburger__bar" aria-hidden="true"></span>
+          <span class="hamburger__bar" aria-hidden="true"></span>
+          <span class="hamburger__bar" aria-hidden="true"></span>
+        </button>
+        <div class="header-menu" id="headerMenu">
+          <label for="langSelect" class="sr-only">Language</label>
+          <select id="langSelect" class="lang-select" aria-label="Select language">
+            <option value="en">🇬🇧 English</option>
+            <option value="zh-Hans">🇨🇳 简体中文 (Simplified Chinese)</option>
+            <option value="zh-Hant">🇭🇰 繁體中文 (Traditional Chinese)</option>
+          </select>
+          <button type="button" class="theme-toggle" id="themeToggle" aria-label="Switch to light theme">☀️ Light</button>
+        </div>
       </div>
       <h1 class="header__title" data-i18n="header.title">Hong Kong Weather</h1>
       <p class="header__location"><span id="locationEmoji">🌡️</span> <span id="location">Hong Kong</span></p>
@@ -60,7 +70,7 @@
 
       <!-- Lamma Island Ferry -->
       <section class="widget widget--wide" id="widget-ferry">
-        <h2 class="widget__title" data-i18n="widget.ferry">Lamma Island Ferry</h2>
+        <h2 class="widget__title"><span class="widget__emoji" aria-hidden="true">⛴️</span> <span data-i18n="widget.ferry">Lamma Island Ferry</span></h2>
 
         <!-- Box 1: Central ↔ Yung Shue Wan -->
         <div class="ferry-schedule-box">
@@ -186,11 +196,18 @@
           </div>
         </div>
 
-        <div class="ferry-ais">
-          <h3 class="ferry-direction__title" data-i18n="widget.ferryPositions">Ferry positions (last 30 min)</h3>
+        <div class="ferry-ais" id="ferry-ais">
+          <div class="ferry-ais-header">
+            <h3 class="ferry-direction__title" data-i18n="widget.ferryPositions">Ferry positions (last 30 min)</h3>
+            <button type="button" class="ferry-widget-hide" id="ferryTrackerHide" data-i18n="ferry.hide">Hide</button>
+          </div>
           <p class="ferry-ais-caption" id="ferryAisCaption">Configure AIS API to show ferry positions</p>
           <div id="ferryAisMap" class="ferry-ais-map"></div>
           <ul class="ferry-ais-list" id="ferryAisList"></ul>
+        </div>
+        <div class="ferry-hidden-bar" id="ferryHiddenBar" hidden>
+          <span class="ferry-hidden-bar__text" data-i18n="ferry.trackerHidden">Ferry tracker hidden</span>
+          <button type="button" class="ferry-widget-show" id="ferryWidgetShow" data-i18n="ferry.showAgain">Show again</button>
         </div>
       </section>
 
@@ -202,7 +219,7 @@
 
       <!-- UV Index -->
       <section class="widget" id="widget-uv">
-        <h2 class="widget__title" data-i18n="widget.uv">UV Index</h2>
+        <h2 class="widget__title"><span class="widget__emoji" aria-hidden="true">☀️</span> <span data-i18n="widget.uv">UV Index</span></h2>
         <div class="stat-value">
           <span id="uvValue">--</span>
           <span class="stat-value__label" id="uvDesc">Loading</span>
@@ -211,7 +228,7 @@
 
       <!-- Humidity -->
       <section class="widget" id="widget-humidity">
-        <h2 class="widget__title" data-i18n="widget.humidity">Humidity</h2>
+        <h2 class="widget__title"><span class="widget__emoji" aria-hidden="true">💧</span> <span data-i18n="widget.humidity">Humidity</span></h2>
         <div class="stat-value">
           <span id="humidityValue">--</span>
           <span class="stat-value__unit">%</span>
@@ -220,7 +237,7 @@
 
       <!-- Wind -->
       <section class="widget" id="widget-wind">
-        <h2 class="widget__title" data-i18n="widget.wind">Wind</h2>
+        <h2 class="widget__title"><span class="widget__emoji" aria-hidden="true">💨</span> <span data-i18n="widget.wind">Wind</span></h2>
         <div class="stat-value">
           <span id="windValue">Loading...</span>
         </div>
@@ -228,7 +245,7 @@
 
       <!-- Air Quality -->
       <section class="widget" id="widget-air">
-        <h2 class="widget__title" data-i18n="widget.air">Air Quality</h2>
+        <h2 class="widget__title"><span class="widget__emoji" aria-hidden="true">😷</span> <span data-i18n="widget.air">Air Quality</span></h2>
         <div class="stat-value">
           <span id="airValue">--</span>
           <span class="stat-value__label" id="airCategory">Loading</span>
@@ -237,7 +254,7 @@
 
       <!-- Dew Point -->
       <section class="widget" id="widget-dewpoint">
-        <h2 class="widget__title" data-i18n="widget.dewpoint">Dew Point</h2>
+        <h2 class="widget__title"><span class="widget__emoji" aria-hidden="true">🌡️</span> <span data-i18n="widget.dewpoint">Dew Point</span></h2>
         <div class="stat-value">
           <span id="dewpointValue">--</span>
           <span class="stat-value__unit">°C</span>
@@ -246,7 +263,7 @@
 
       <!-- Visibility -->
       <section class="widget" id="widget-visibility">
-        <h2 class="widget__title" data-i18n="widget.visibility">Visibility</h2>
+        <h2 class="widget__title"><span class="widget__emoji" aria-hidden="true">👁️</span> <span data-i18n="widget.visibility">Visibility</span></h2>
         <div class="stat-value">
           <span id="visibilityValue">Loading...</span>
         </div>
@@ -254,7 +271,7 @@
 
       <!-- Pressure -->
       <section class="widget" id="widget-pressure">
-        <h2 class="widget__title" data-i18n="widget.pressure">Pressure</h2>
+        <h2 class="widget__title"><span class="widget__emoji" aria-hidden="true">🎚️</span> <span data-i18n="widget.pressure">Pressure</span></h2>
         <div class="stat-value">
           <span id="pressureValue">--</span>
         </div>
@@ -262,7 +279,7 @@
 
       <!-- Sea Temperature -->
       <section class="widget" id="widget-sea">
-        <h2 class="widget__title" data-i18n="widget.sea">Sea Temperature</h2>
+        <h2 class="widget__title"><span class="widget__emoji" aria-hidden="true">🏊</span> <span data-i18n="widget.sea">Sea Temperature</span></h2>
         <div class="stat-value">
           <span id="seaTempValue">--</span>
           <span class="stat-value__unit">°C</span>
@@ -271,7 +288,7 @@
 
       <!-- Tides (Quarry Bay) -->
       <section class="widget" id="widget-tides">
-        <h2 class="widget__title" data-i18n="widget.tides">Tides (Quarry Bay)</h2>
+        <h2 class="widget__title"><span class="widget__emoji" aria-hidden="true">🌊</span> <span data-i18n="widget.tides">Tides (Quarry Bay)</span></h2>
         <ul class="tide-list" id="tideList">
           <li>Loading...</li>
         </ul>
@@ -280,6 +297,13 @@
       <!-- Sunrise & Sunset -->
       <section class="widget" id="widget-sun">
         <h2 class="widget__title" data-i18n="widget.sun">Sun</h2>
+        <div class="sun-status">
+          <span class="sun-status__emoji" id="sunStatusEmoji" aria-hidden="true">☀️</span>
+          <span class="sun-status__text" id="sunStatusText">Day</span>
+        </div>
+        <div class="sun-sky-strip" aria-hidden="true">
+          <span class="sun-sky-strip__icon" id="sunPositionIcon">☀️</span>
+        </div>
         <div class="sun-moon">
           <div class="sun-moon__item">
             <span class="sun-moon__label" data-i18n="sunrise">Sunrise</span>
@@ -295,6 +319,17 @@
       <!-- Moon Rise & Set -->
       <section class="widget" id="widget-moon">
         <h2 class="widget__title" data-i18n="widget.moon">Moon</h2>
+        <div class="moon-phase">
+          <span class="moon-phase__emoji" id="moonPhaseEmoji" aria-hidden="true">🌕</span>
+          <span class="moon-phase__text" id="moonPhaseText">Full moon</span>
+        </div>
+        <div class="moon-status">
+          <span class="moon-status__emoji" id="moonStatusEmoji" aria-hidden="true">🌙</span>
+          <span class="moon-status__text" id="moonStatusText">Up</span>
+        </div>
+        <div class="moon-sky-strip" aria-hidden="true">
+          <span class="moon-sky-strip__icon" id="moonPositionIcon">🌙</span>
+        </div>
         <div class="sun-moon">
           <div class="sun-moon__item">
             <span class="sun-moon__label" data-i18n="moonrise">Moonrise</span>
@@ -309,7 +344,7 @@
 
       <!-- Weather radar (RainViewer on Leaflet map, Hong Kong) -->
       <section class="widget widget--wide" id="widget-radar">
-        <h2 class="widget__title" data-i18n="widget.radar">Weather Radar</h2>
+        <h2 class="widget__title"><span class="widget__emoji" aria-hidden="true">📡</span> <span data-i18n="widget.radar">Weather Radar</span></h2>
         <div class="radar-container">
           <div class="radar-map-wrap">
             <div id="radarMap" class="radar-map"></div>
