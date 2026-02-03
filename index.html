@@ -54,30 +54,128 @@
       <section class="widget widget--wide" id="widget-ferry">
         <h2 class="widget__title">Lamma Island Ferry</h2>
 
-        <div class="ferry-direction">
-          <h3 class="ferry-direction__title">Central Pier 4 → Yung Shue Wan</h3>
-          <div class="ferry-countdown">
-            <span class="ferry-countdown__label">Next ferry in</span>
-            <span class="ferry-countdown__value" id="ferryCountdown">--</span>
+        <!-- Box 1: Central ↔ Yung Shue Wan -->
+        <div class="ferry-schedule-box">
+          <h3 class="ferry-schedule-box__title">Central ↔ Yung Shue Wan</h3>
+          <div class="ferry-directions-grid">
+            <div class="ferry-direction">
+              <h4 class="ferry-direction__title">Central → Yung Shue Wan</h4>
+              <div class="ferry-countdown">
+                <span class="ferry-countdown__label">Next ferry in</span>
+                <span class="ferry-countdown__value" id="ferryCountdown">--</span>
+              </div>
+              <div class="ferry-next" id="ferryNextTime"></div>
+              <p class="ferry-subtitle">Next sailings (next 2 hours)</p>
+              <ul class="ferry-list" id="ferryList">
+                <li>Loading...</li>
+              </ul>
+            </div>
+            <div class="ferry-direction">
+              <h4 class="ferry-direction__title">Yung Shue Wan → Central</h4>
+              <div class="ferry-countdown">
+                <span class="ferry-countdown__label">Next ferry in</span>
+                <span class="ferry-countdown__value" id="ferryCountdownToCentral">--</span>
+              </div>
+              <div class="ferry-next" id="ferryNextTimeToCentral"></div>
+              <p class="ferry-subtitle">Next sailings (next 2 hours)</p>
+              <ul class="ferry-list" id="ferryListToCentral">
+                <li>Loading...</li>
+              </ul>
+            </div>
           </div>
-          <div class="ferry-next" id="ferryNextTime"></div>
-          <h4 class="ferry-subtitle">Next sailings (next 2 hours)</h4>
-          <ul class="ferry-list" id="ferryList">
-            <li>Loading...</li>
-          </ul>
         </div>
 
-        <div class="ferry-direction">
-          <h3 class="ferry-direction__title">Yung Shue Wan → Central Pier 4</h3>
-          <div class="ferry-countdown">
-            <span class="ferry-countdown__label">Next ferry in</span>
-            <span class="ferry-countdown__value" id="ferryCountdownToCentral">--</span>
+        <!-- Box 2: Central ↔ Sok Kwu Wan -->
+        <div class="ferry-schedule-box">
+          <h3 class="ferry-schedule-box__title">Central ↔ Sok Kwu Wan</h3>
+          <div class="ferry-directions-grid">
+            <div class="ferry-direction">
+              <h4 class="ferry-direction__title">Central → Sok Kwu Wan</h4>
+              <div class="ferry-countdown">
+                <span class="ferry-countdown__label">Next ferry in</span>
+                <span class="ferry-countdown__value" id="ferryCountdownToSKW">--</span>
+              </div>
+              <div class="ferry-next" id="ferryNextTimeToSKW"></div>
+              <p class="ferry-subtitle">Next sailings (next 2 hours)</p>
+              <ul class="ferry-list" id="ferryListToSKW">
+                <li>Loading...</li>
+              </ul>
+            </div>
+            <div class="ferry-direction">
+              <h4 class="ferry-direction__title">Sok Kwu Wan → Central</h4>
+              <div class="ferry-countdown">
+                <span class="ferry-countdown__label">Next ferry in</span>
+                <span class="ferry-countdown__value" id="ferryCountdownSKWToCentral">--</span>
+              </div>
+              <div class="ferry-next" id="ferryNextTimeSKWToCentral"></div>
+              <p class="ferry-subtitle">Next sailings (next 2 hours)</p>
+              <ul class="ferry-list" id="ferryListSKWToCentral">
+                <li>Loading...</li>
+              </ul>
+            </div>
           </div>
-          <div class="ferry-next" id="ferryNextTimeToCentral"></div>
-          <h4 class="ferry-subtitle">Next sailings (next 2 hours)</h4>
-          <ul class="ferry-list" id="ferryListToCentral">
-            <li>Loading...</li>
-          </ul>
+        </div>
+
+        <!-- Box 3: Yung Shue Wan → Pak Kok → Aberdeen -->
+        <div class="ferry-schedule-box">
+          <h3 class="ferry-schedule-box__title">Yung Shue Wan → Pak Kok → Aberdeen</h3>
+          <div class="ferry-directions-grid">
+            <div class="ferry-direction">
+              <h4 class="ferry-direction__title">Yung Shue Wan → Aberdeen</h4>
+              <div class="ferry-countdown">
+                <span class="ferry-countdown__label">Next ferry in</span>
+                <span class="ferry-countdown__value" id="ferryCountdownYSWToAberdeen">--</span>
+              </div>
+              <div class="ferry-next" id="ferryNextTimeYSWToAberdeen"></div>
+              <p class="ferry-subtitle">Next sailings (next 2 hours)</p>
+              <ul class="ferry-list" id="ferryListYSWToAberdeen">
+                <li>Loading...</li>
+              </ul>
+            </div>
+            <div class="ferry-direction">
+              <h4 class="ferry-direction__title">Pak Kok → Aberdeen</h4>
+              <div class="ferry-countdown">
+                <span class="ferry-countdown__label">Next ferry in</span>
+                <span class="ferry-countdown__value" id="ferryCountdownPakKokToAberdeen">--</span>
+              </div>
+              <div class="ferry-next" id="ferryNextTimePakKokToAberdeen"></div>
+              <p class="ferry-subtitle">Next sailings (next 2 hours)</p>
+              <ul class="ferry-list" id="ferryListPakKokToAberdeen">
+                <li>Loading...</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Box 4: Aberdeen → Pak Kok → Yung Shue Wan -->
+        <div class="ferry-schedule-box">
+          <h3 class="ferry-schedule-box__title">Aberdeen → Pak Kok → Yung Shue Wan</h3>
+          <div class="ferry-directions-grid">
+            <div class="ferry-direction">
+              <h4 class="ferry-direction__title">Aberdeen → Pak Kok</h4>
+              <div class="ferry-countdown">
+                <span class="ferry-countdown__label">Next ferry in</span>
+                <span class="ferry-countdown__value" id="ferryCountdownAberdeenToYSW">--</span>
+              </div>
+              <div class="ferry-next" id="ferryNextTimeAberdeenToYSW"></div>
+              <p class="ferry-subtitle">Next sailings (next 2 hours)</p>
+              <ul class="ferry-list" id="ferryListAberdeenToYSW">
+                <li>Loading...</li>
+              </ul>
+            </div>
+            <div class="ferry-direction">
+              <h4 class="ferry-direction__title">Pak Kok → Yung Shue Wan</h4>
+              <div class="ferry-countdown">
+                <span class="ferry-countdown__label">Next ferry in</span>
+                <span class="ferry-countdown__value" id="ferryCountdownPakKokToYSW">--</span>
+              </div>
+              <div class="ferry-next" id="ferryNextTimePakKokToYSW"></div>
+              <p class="ferry-subtitle">Next sailings (next 2 hours)</p>
+              <ul class="ferry-list" id="ferryListPakKokToYSW">
+                <li>Loading...</li>
+              </ul>
+            </div>
+          </div>
         </div>
 
         <div class="ferry-ais">
