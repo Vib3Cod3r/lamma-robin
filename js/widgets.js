@@ -1,0 +1,564 @@
+/**
+ * Populate weather widgets from API data
+ */
+
+let radarMapInstance = null;
+let radarOverlayLayer = null;
+let ferryAisMapInstance = null;
+let ferryAisMarkersLayer = null;
+let ferryAisPiersLayer = null;
+
+/** Build popup HTML for a ferry (name, speed, course, last update). */
+function ferryAisPopupHtml(v) {
+  const name = (v.name || v.mmsi).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const sog = v.sog != null && !isNaN(v.sog) ? `${Number(v.sog).toFixed(1)} kn` : '--';
+  const cog = v.cog != null && !isNaN(v.cog) ? `${Math.round(v.cog)}°` : '--';
+  const timeStr = v.time ? new Date(v.time).toLocaleString() : '--';
+  return `<div class="ferry-ais-popup"><strong>${name}</strong><br>Speed: ${sog} · Course: ${cog}<br>Updated: ${timeStr}</div>`;
+}
+
+/** List label: "Sea Supreme (docked)" or "Sea Supreme (8 kn)". */
+function ferryAisListLabel(v) {
+  const name = v.name || v.mmsi;
+  if (v.sog != null && !isNaN(v.sog) && v.sog < 0.5) return `${name} (docked)`;
+  if (v.sog != null && !isNaN(v.sog)) return `${name} (${Number(v.sog).toFixed(1)} kn)`;
+  return name;
+}
+
+/**
+ * HKO weather icon code to emoji mapping
+ * @see https://www.hko.gov.hk/textonly/v2/explain/wxicon_e.htm
+ */
+const ICON_TO_EMOJI = {
+  50: '☀️',  // Sunny
+  51: '⛅',   // Sunny Periods
+  52: '🌤️',  // Sunny Intervals
+  53: '🌦️',  // Sunny Periods with A Few Showers
+  54: '🌧️',  // Sunny Intervals with Showers
+  60: '☁️',   // Cloudy
+  61: '🌥️',  // Overcast
+  62: '🌧️',  // Light Rain
+  63: '🌧️',  // Rain
+  64: '🌧️',  // Heavy Rain
+  65: '⛈️',   // Thunderstorms
+  70: '🌙',   // Fine (night)
+  71: '🌙',
+  72: '🌙',
+  73: '🌙',
+  74: '🌙',
+  75: '🌙',
+  76: '☁️',   // Mainly Cloudy (night)
+  77: '🌙',   // Mainly Fine (night)
+  80: '💨',   // Windy
+  81: '🏜️',   // Dry
+  82: '💧',   // Humid
+  83: '🌫️',   // Fog
+  84: '🌫️',   // Mist
+  85: '🌫️',   // Haze
+  90: '🔥',   // Hot
+  91: '🌡️',   // Warm
+  92: '🧊',   // Cool
+  93: '❄️',   // Cold
+};
+
+function getWeatherEmoji(iconCode) {
+  if (iconCode == null) return '🌡️';
+  return ICON_TO_EMOJI[iconCode] ?? '🌤️';
+}
+
+/**
+ * Approximate dew point from temperature (°C) and relative humidity (%)
+ */
+function calculateDewPoint(tempC, humidity) {
+  if (tempC == null || humidity == null) return null;
+  const a = 17.27;
+  const b = 237.7;
+  const alpha = ((a * tempC) / (b + tempC)) + Math.log(humidity / 100);
+  return Math.round((b * alpha) / (a - alpha));
+}
+
+/**
+ * Approximate "feels like" from temp and humidity (simplified heat index / humidex)
+ */
+function calculateFeelsLike(tempC, humidity) {
+  if (tempC == null) return tempC;
+  if (humidity == null) return tempC;
+  if (tempC < 27) return tempC; // Below 27°C, feels like ≈ actual
+  const heatIndex = tempC + 0.5555 * (6.11 * Math.exp(5417.7530 * (1 / 273.16 - 1 / (tempC + 273.15))) * humidity / 100 - 10);
+  return Math.round(heatIndex);
+}
+
+/**
+ * Get temperature from HKO (Hong Kong Observatory station preferred)
+ */
+function getHKOTemperature(rhrread) {
+  if (!rhrread?.temperature?.data) return null;
+  const hko = rhrread.temperature.data.find(t => t.place === 'Hong Kong Observatory');
+  return hko ? hko.value : rhrread.temperature.data[0]?.value;
+}
+
+/**
+ * Get humidity from HKO
+ */
+function getHKOHumidity(rhrread) {
+  if (!rhrread?.humidity?.data) return null;
+  const hko = rhrread.humidity.data.find(h => h.place === 'Hong Kong Observatory');
+  return hko ? hko.value : rhrread.humidity.data[0]?.value;
+}
+
+/**
+ * Parse SRS (sunrise/sunset) response - returns { sunrise, sunset }
+ * HKO returns fields: ["YYYY-MM-DD","RISE","TRAN.","SET"]
+ */
+function parseSunriseSunset(srs) {
+  if (!srs?.data?.length || !srs?.fields?.length) return { sunrise: null, sunset: null };
+  const row = srs.data[0];
+  if (!Array.isArray(row)) return { sunrise: null, sunset: null };
+  
+  const fields = srs.fields;
+  const riseIdx = fields.findIndex(f => f && (f === 'RISE' || f.toLowerCase().includes('rise')));
+  const setIdx = fields.findIndex(f => f && (f === 'SET' || f.toLowerCase().includes('set')));
+  
+  return {
+    sunrise: riseIdx >= 0 ? row[riseIdx] : null,
+    sunset: setIdx >= 0 ? row[setIdx] : null
+  };
+}
+
+/**
+ * Parse MRS (moon rise/set) response
+ * HKO returns fields: ["YYYY-MM-DD","RISE","TRAN.","SET"]
+ */
+function parseMoonRiseSet(mrs) {
+  if (!mrs?.data?.length || !mrs?.fields?.length) return { moonrise: null, moonset: null };
+  const row = mrs.data[0];
+  if (!Array.isArray(row)) return { moonrise: null, moonset: null };
+  
+  const fields = mrs.fields;
+  const riseIdx = fields.findIndex(f => f && (f === 'RISE' || f.toLowerCase().includes('rise')));
+  const setIdx = fields.findIndex(f => f && (f === 'SET' || f.toLowerCase().includes('set')));
+  
+  return {
+    moonrise: riseIdx >= 0 ? row[riseIdx] : null,
+    moonset: setIdx >= 0 ? row[setIdx] : null
+  };
+}
+
+/**
+ * Parse HKO HLT (High and Low Tides) response for one day
+ * @param {object} hlt - { fields: string[], data: string[][] }
+ * @returns {Array<{ timeStr: string, height: string, type: string }>}
+ */
+function parseTides(hlt) {
+  if (!hlt?.fields?.length || !Array.isArray(hlt.data)) return [];
+  const fields = hlt.fields;
+  const timeIdx = fields.findIndex(f => f && (f === 'Time' || f.toLowerCase() === 'time'));
+  const heightIdx = fields.findIndex(f => f && (f === 'Height(m)' || (f.toLowerCase && f.toLowerCase().includes('height'))));
+  if (timeIdx < 0 || heightIdx < 0) return [];
+
+  const rows = hlt.data.slice(0, 12);
+  const result = [];
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    if (!Array.isArray(row) || row.length <= Math.max(timeIdx, heightIdx)) continue;
+    const timeRaw = row[timeIdx];
+    const height = row[heightIdx];
+    if (timeRaw == null || height == null) continue;
+    const timeStr = String(timeRaw).length === 4
+      ? `${String(timeRaw).slice(0, 2)}:${String(timeRaw).slice(2)}`
+      : String(timeRaw);
+    const h = parseFloat(height);
+    const type = (i % 2 === 0) ? 'Low' : 'High';
+    result.push({ timeStr, height: String(height), type });
+  }
+  return result;
+}
+
+/**
+ * Extract pressure from RYES (Weather and Radiation Report)
+ */
+function getPressureFromRYES(ryes) {
+  if (!ryes || typeof ryes !== 'object') return null;
+  for (const key of Object.keys(ryes)) {
+    if (key.toLowerCase().includes('pressure')) return ryes[key];
+  }
+  return null;
+}
+
+/**
+ * Update only the ferry AIS section (caption, list, map markers).
+ * Call this when AIS data arrives (WebSocket) or on a timer so boats appear without full reload.
+ * @param {Array<{ mmsi, name, lat, lon, cog?, time? }>|null} ferryList - null = unavailable, [] = none in area
+ */
+function updateFerryAISOnly(ferryList) {
+  const ferryAisCaptionEl = document.getElementById('ferryAisCaption');
+  const ferryAisListEl = document.getElementById('ferryAisList');
+  const ferryAisMapEl = document.getElementById('ferryAisMap');
+  const hasKey = typeof LAMMA_FERRY_AIS !== 'undefined' && (LAMMA_FERRY_AIS.AISSTREAM_API_KEY || '').trim().length > 0;
+
+  if (ferryAisCaptionEl) {
+    if (!hasKey) {
+      ferryAisCaptionEl.textContent = 'Set LAMMA_FERRY_AIS.AISSTREAM_API_KEY in api.js (API key from https://aisstream.io/apikeys) to show ferry positions.';
+      if (ferryAisListEl) ferryAisListEl.innerHTML = '';
+    } else if (ferryList === null) {
+      ferryAisCaptionEl.textContent = 'Ferry positions unavailable (check AIS API).';
+      if (ferryAisListEl) ferryAisListEl.innerHTML = '';
+    } else {
+      const list = Array.isArray(ferryList) ? ferryList : [];
+      ferryAisCaptionEl.textContent = list.length
+        ? `${list.length} ferry${list.length !== 1 ? 's' : ''} in area (last 30 min)`
+        : 'No ferries in area (last 30 min)';
+      if (ferryAisListEl) {
+        ferryAisListEl.innerHTML = list.length
+          ? list.map(v => `<li>${ferryAisListLabel(v)}</li>`).join('')
+          : '<li>None</li>';
+      }
+    }
+  }
+
+  if (ferryAisMapEl && typeof L !== 'undefined' && typeof LAMMA_FERRY_AIS !== 'undefined') {
+    if (!hasKey) {
+      ferryAisMapEl.style.display = 'none';
+    } else {
+      ferryAisMapEl.style.display = '';
+      if (ferryAisMapInstance) {
+        if (ferryAisMarkersLayer) {
+          ferryAisMapInstance.removeLayer(ferryAisMarkersLayer);
+          ferryAisMarkersLayer = null;
+        }
+        const list = Array.isArray(ferryList) ? ferryList : [];
+        if (list.length > 0) {
+          ferryAisMarkersLayer = L.layerGroup();
+          list.forEach(v => {
+            const cog = v.cog != null && !isNaN(v.cog) ? v.cog : 0;
+            const icon = L.divIcon({
+              className: 'ferry-ais-arrow',
+              html: `<span style="display:inline-block;transform:rotate(${cog}deg);font-size:22px;line-height:1;color:#1d9bf0;text-shadow:0 0 2px #fff, 0 1px 3px rgba(0,0,0,0.5);" title="${(v.name || v.mmsi).replace(/"/g, '&quot;')}">▲</span>`,
+              iconSize: [24, 24],
+              iconAnchor: [12, 12]
+            });
+            const m = L.marker([v.lat, v.lon], { icon })
+              .bindTooltip(v.name || String(v.mmsi), { permanent: false, direction: 'top' })
+              .bindPopup(ferryAisPopupHtml(v), { maxWidth: 280 });
+            ferryAisMarkersLayer.addLayer(m);
+            if (v.trail && v.trail.length >= 2) {
+              const line = L.polyline(v.trail, { color: '#1d9bf0', weight: 2, opacity: 0.7, dashArray: '4,4' });
+              ferryAisMarkersLayer.addLayer(line);
+            }
+          });
+          ferryAisMarkersLayer.addTo(ferryAisMapInstance);
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Update all widgets with API data
+ */
+function updateWidgets(data) {
+  const temp = getHKOTemperature(data.rhrread);
+  const humidity = getHKOHumidity(data.rhrread);
+  const dewPoint = temp != null && humidity != null ? calculateDewPoint(temp, humidity) : null;
+  const feelsLike = temp != null && humidity != null ? calculateFeelsLike(temp, humidity) : temp;
+
+  // Current weather icon (from rhrread or today's forecast)
+  const currentIcon = data.rhrread?.icon?.[0] ?? data.fnd?.weatherForecast?.[0]?.ForecastIcon;
+  const currentEmoji = getWeatherEmoji(currentIcon);
+
+  // Current temp & overview
+  document.getElementById('currentEmoji').textContent = currentEmoji;
+  document.getElementById('locationEmoji').textContent = currentEmoji;
+  document.getElementById('currentTemp').textContent = temp ?? '--';
+  document.getElementById('feelsLike').textContent = feelsLike != null ? `Feels like ${feelsLike}°C` : 'Feels like --°C';
+  document.getElementById('weatherOverview').textContent =
+    data.flw?.forecastDesc || data.flw?.generalSituation || 'Loading...';
+
+  // Today's highs & lows (from fnd first day)
+  const todayForecast = data.fnd?.weatherForecast?.[0];
+  if (todayForecast) {
+    document.getElementById('tempHigh').textContent = todayForecast.forecastMaxtemp?.value ?? '--';
+    document.getElementById('tempLow').textContent = todayForecast.forecastMintemp?.value ?? '--';
+    document.getElementById('todayForecast').textContent = todayForecast.forecastWeather || '';
+  } else {
+    document.getElementById('todayForecast').textContent = '';
+  }
+
+  // 9-day forecast
+  const grid = document.getElementById('forecastGrid');
+  grid.innerHTML = '';
+  if (data.fnd?.weatherForecast) {
+    data.fnd.weatherForecast.forEach((day, i) => {
+      const emoji = getWeatherEmoji(day.ForecastIcon);
+      const card = document.createElement('div');
+      card.className = 'forecast-card';
+      card.innerHTML = `
+        <div class="forecast-card__emoji">${emoji}</div>
+        <div class="forecast-card__day">${day.week || `Day ${i + 1}`}</div>
+        <div class="forecast-card__temps">${day.forecastMaxtemp?.value ?? '--'}° / ${day.forecastMintemp?.value ?? '--'}°</div>
+        <div class="forecast-card__weather">${day.forecastWeather || ''}</div>
+        <div class="forecast-card__wind">${day.forecastWind || ''}</div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  // Warnings
+  const warningsEl = document.getElementById('warningsContent');
+  const warnItems = [];
+  if (data.warnsum && typeof data.warnsum === 'object') {
+    Object.values(data.warnsum).forEach(w => {
+      if (w?.name && w?.actionCode !== 'CANCEL') warnItems.push(w.name);
+    });
+  }
+  if (data.swt?.swt?.length) {
+    data.swt.swt.forEach(t => warnItems.push(t.desc || t));
+  }
+  warningsEl.textContent = warnItems.length ? warnItems.join(' • ') : 'No active warnings';
+
+  // UV
+  const uv = data.rhrread?.uvindex?.data?.[0];
+  document.getElementById('uvValue').textContent = uv?.value ?? '--';
+  document.getElementById('uvDesc').textContent = uv?.desc ?? '';
+
+  // Humidity
+  document.getElementById('humidityValue').textContent = humidity ?? '--';
+
+  // Wind (from today's forecast)
+  const windText = todayForecast?.forecastWind || data.flw?.forecastDesc?.match(/wind[s]?[^.]*/i)?.[0] || '--';
+  document.getElementById('windValue').textContent = windText;
+
+  // Air Quality
+  if (data.airQuality) {
+    document.getElementById('airValue').textContent = data.airQuality.aqi;
+    document.getElementById('airCategory').textContent = data.airQuality.category;
+  } else {
+    document.getElementById('airValue').textContent = 'N/A';
+    document.getElementById('airCategory').textContent = 'Data unavailable';
+  }
+
+  // Dew point
+  document.getElementById('dewpointValue').textContent = dewPoint ?? '--';
+
+  // Visibility
+  let visibility = null;
+  if (data.ltmv?.data?.length && data.ltmv?.fields?.length) {
+    const visIdx = data.ltmv.fields.findIndex(f => /visibility/i.test(f));
+    if (visIdx >= 0 && data.ltmv.data[0]) {
+      visibility = data.ltmv.data[0][visIdx];
+    }
+  }
+  document.getElementById('visibilityValue').textContent = visibility ?? 'Loading...';
+
+  // Pressure (from HKO CSV or fallback to RYES)
+  const pressure = data.pressure || getPressureFromRYES(data.ryes);
+  document.getElementById('pressureValue').textContent = pressure ?? '-- hPa';
+
+  // Sea temperature (from HKO 9-day forecast)
+  const seaTemp = data.fnd?.seaTemp?.value ?? data.fnd?.seaTemp;
+  const seaTempEl = document.getElementById('seaTempValue');
+  if (seaTempEl) seaTempEl.textContent = seaTemp != null ? seaTemp : '--';
+
+  // Tides (HKO HLT – Quarry Bay)
+  const tideListEl = document.getElementById('tideList');
+  if (tideListEl) {
+    const items = parseTides(data.tides);
+    if (items.length) {
+      tideListEl.innerHTML = items.map(t => `<li><span class="tide-time">${t.timeStr} ${t.type}</span><span class="tide-height">${t.height} m</span></li>`).join('');
+    } else {
+      tideListEl.innerHTML = '<li>Tide data unavailable</li>';
+    }
+  }
+
+  // Sun
+  const sun = parseSunriseSunset(data.srs);
+  document.getElementById('sunriseValue').textContent = sun.sunrise ?? '--';
+  document.getElementById('sunsetValue').textContent = sun.sunset ?? '--';
+
+  // Moon
+  const moon = parseMoonRiseSet(data.mrs);
+  document.getElementById('moonriseValue').textContent = moon.moonrise ?? '--';
+  document.getElementById('moonsetValue').textContent = moon.moonset ?? '--';
+
+  // Ferry (Lamma: both directions)
+  const ferryToYSW = data.ferry?.toYungShueWan;
+  const ferryToCentral = data.ferry?.toCentral;
+
+  const setFerryDirection = (listId, countdownId, nextTimeId, dir) => {
+    const listEl = document.getElementById(listId);
+    const countdownEl = document.getElementById(countdownId);
+    const nextTimeEl = document.getElementById(nextTimeId);
+    if (!listEl) return;
+    if (dir?.nextSailings?.length) {
+      listEl.innerHTML = dir.nextSailings.map(s => `<li>${s.timeStr}</li>`).join('');
+      const first = dir.nextSailings[0];
+      if (nextTimeEl) nextTimeEl.textContent = first ? `Departs ${first.timeStr}` : '';
+      if (countdownEl) {
+        if (dir.nextDepartureIso) {
+          countdownEl.setAttribute('data-next-departure', dir.nextDepartureIso);
+        } else {
+          countdownEl.textContent = '--';
+          countdownEl.removeAttribute('data-next-departure');
+        }
+      }
+    } else {
+      listEl.innerHTML = '<li>Timetable unavailable</li>';
+      if (nextTimeEl) nextTimeEl.textContent = '';
+      if (countdownEl) {
+        countdownEl.textContent = '--';
+        countdownEl.removeAttribute('data-next-departure');
+      }
+    }
+  };
+
+  setFerryDirection('ferryList', 'ferryCountdown', 'ferryNextTime', ferryToYSW);
+  setFerryDirection('ferryListToCentral', 'ferryCountdownToCentral', 'ferryNextTimeToCentral', ferryToCentral);
+  updateFerryCountdown();
+
+  // Ferry AIS positions (last 30 min) - Doesnt work yet
+  const ferryAisMapEl = document.getElementById('ferryAisMap');
+  const ferryAisCaptionEl = document.getElementById('ferryAisCaption');
+  const ferryAisListEl = document.getElementById('ferryAisList');
+  if (ferryAisCaptionEl) {
+    const hasKey = typeof LAMMA_FERRY_AIS !== 'undefined' && (LAMMA_FERRY_AIS.AISSTREAM_API_KEY || '').trim().length > 0;
+    if (!hasKey) {
+      ferryAisCaptionEl.textContent = 'Set LAMMA_FERRY_AIS.AISSTREAM_API_KEY in api.js (API key from https://aisstream.io/apikeys) to show ferry positions.';
+      if (ferryAisListEl) ferryAisListEl.innerHTML = '';
+    } else if (data.aisFerries === null) {
+      ferryAisCaptionEl.textContent = 'Ferry positions unavailable (check AIS API).';
+      if (ferryAisListEl) ferryAisListEl.innerHTML = '';
+    } else {
+      const list = Array.isArray(data.aisFerries) ? data.aisFerries : [];
+      ferryAisCaptionEl.textContent = list.length
+        ? `${list.length} ferry${list.length !== 1 ? 's' : ''} in area (last 30 min)`
+        : 'No ferries in area (last 30 min)';
+      if (ferryAisListEl) {
+        ferryAisListEl.innerHTML = list.length
+          ? list.map(v => `<li>${ferryAisListLabel(v)}</li>`).join('')
+          : '<li>None</li>';
+      }
+    }
+  }
+  if (ferryAisMapEl && typeof L !== 'undefined' && typeof LAMMA_FERRY_AIS !== 'undefined') {
+    const hasKey = (LAMMA_FERRY_AIS.AISSTREAM_API_KEY || '').trim().length > 0;
+    if (!hasKey) {
+      ferryAisMapEl.style.display = 'none';
+    } else {
+      ferryAisMapEl.style.display = '';
+      if (!ferryAisMapInstance) {
+        const centerLat = (LAMMA_FERRY_AIS.ZONES.CENTRAL.lat + LAMMA_FERRY_AIS.ZONES.LAMMA.lat) / 2;
+        const centerLon = (LAMMA_FERRY_AIS.ZONES.CENTRAL.lon + LAMMA_FERRY_AIS.ZONES.LAMMA.lon) / 2;
+        ferryAisMapInstance = L.map('ferryAisMap', { center: [centerLat, centerLon], zoom: 12, zoomControl: true });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+          maxZoom: 19
+        }).addTo(ferryAisMapInstance);
+        ferryAisPiersLayer = L.layerGroup();
+        const central = LAMMA_FERRY_AIS.ZONES.CENTRAL;
+        const lamma = LAMMA_FERRY_AIS.ZONES.LAMMA;
+        L.circleMarker([central.lat, central.lon], { radius: 8, fillColor: '#1d9bf0', color: '#fff', weight: 2, fillOpacity: 0.9 })
+          .bindPopup('Central Pier 4').addTo(ferryAisPiersLayer);
+        L.circleMarker([lamma.lat, lamma.lon], { radius: 8, fillColor: '#1d9bf0', color: '#fff', weight: 2, fillOpacity: 0.9 })
+          .bindPopup('Yung Shue Wan').addTo(ferryAisPiersLayer);
+        ferryAisPiersLayer.addTo(ferryAisMapInstance);
+      }
+      if (ferryAisMarkersLayer) {
+        ferryAisMapInstance.removeLayer(ferryAisMarkersLayer);
+        ferryAisMarkersLayer = null;
+      }
+      const list = Array.isArray(data.aisFerries) ? data.aisFerries : [];
+      if (list.length > 0) {
+        ferryAisMarkersLayer = L.layerGroup();
+        list.forEach(v => {
+          const cog = v.cog != null && !isNaN(v.cog) ? v.cog : 0;
+          const icon = L.divIcon({
+            className: 'ferry-ais-arrow',
+            html: `<span style="display:inline-block;transform:rotate(${cog}deg);font-size:22px;line-height:1;color:#1d9bf0;text-shadow:0 0 2px #fff, 0 1px 3px rgba(0,0,0,0.5);" title="${(v.name || v.mmsi).replace(/"/g, '&quot;')}">▲</span>`,
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
+          });
+          const m = L.marker([v.lat, v.lon], { icon })
+            .bindTooltip(v.name || String(v.mmsi), { permanent: false, direction: 'top' })
+            .bindPopup(ferryAisPopupHtml(v), { maxWidth: 280 });
+          ferryAisMarkersLayer.addLayer(m);
+          if (v.trail && v.trail.length >= 2) {
+            const line = L.polyline(v.trail, { color: '#1d9bf0', weight: 2, opacity: 0.7, dashArray: '4,4' });
+            ferryAisMarkersLayer.addLayer(line);
+          }
+        });
+        ferryAisMarkersLayer.addTo(ferryAisMapInstance);
+      }
+    }
+  }
+
+  // Radar (RainViewer on Leaflet map, Hong Kong)
+  const radarMapEl = document.getElementById('radarMap');
+  const radarCaptionEl = document.getElementById('radarCaption');
+  if (radarMapEl && radarCaptionEl && typeof L !== 'undefined' && RAINVIEWER) {
+    if (data.radar?.host && data.radar?.path) {
+      const host = data.radar.host.replace(/\/$/, '');
+      const path = data.radar.path;
+      const tileUrl = `${host}${path}/256/{z}/{x}/{y}/2/1_0.png`;
+
+      if (!radarMapInstance) {
+        radarMapInstance = L.map('radarMap', {
+          center: [RAINVIEWER.HONG_KONG_LAT, RAINVIEWER.HONG_KONG_LON],
+          zoom: 9,
+          zoomControl: true
+        });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+          maxZoom: 19
+        }).addTo(radarMapInstance);
+      }
+
+      if (radarOverlayLayer) {
+        radarMapInstance.removeLayer(radarOverlayLayer);
+      }
+      radarOverlayLayer = L.tileLayer(tileUrl, {
+        maxZoom: 19,
+        maxNativeZoom: 7,
+        opacity: 0.75
+      }).addTo(radarMapInstance);
+
+      const gen = data.radar.generated;
+      radarCaptionEl.textContent = gen ? `Latest frame · ${new Date(gen * 1000).toLocaleString()}` : 'Latest radar frame';
+    } else {
+      radarCaptionEl.textContent = 'Radar unavailable';
+    }
+  }
+
+  // Last updated
+  const updateTime = data.rhrread?.updateTime || data.flw?.updateTime || data.fnd?.updateTime;
+  document.getElementById('lastUpdated').textContent = updateTime
+    ? `Updated ${new Date(updateTime).toLocaleString()}`
+    : 'Updated --';
+}
+
+/**
+ * Update one ferry countdown element. Call every second from app.js for both directions.
+ */
+function updateFerryCountdown() {
+  const countdownIds = ['ferryCountdown', 'ferryCountdownToCentral'];
+  countdownIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const iso = el.getAttribute('data-next-departure');
+    if (!iso) return;
+    const next = new Date(iso);
+    const now = new Date();
+    const ms = next - now;
+    if (ms <= 0) {
+      el.textContent = 'Departed';
+      return;
+    }
+    const totalMins = Math.floor(ms / 60000);
+    const hours = Math.floor(totalMins / 60);
+    const mins = totalMins % 60;
+    if (hours > 0) {
+      el.textContent = `${hours}h ${mins}m`;
+    } else {
+      el.textContent = `${mins} min`;
+    }
+  });
+}
