@@ -26,6 +26,16 @@ A responsive web app displaying Hong Kong weather conditions, 9-day forecast, La
    ```
    Then open `http://localhost:8000` in your browser.
 
+## Docker
+
+Build and push the image to the registry using the helper script:
+
+```bash
+./build-image.sh
+```
+
+The script builds and pushes `registry.fanjango.com.hk/vib3cod3r/lamma-robin:latest`. Ensure you are logged in to the registry and have permission to push.
+
 ## Data Sources
 
 - **Hong Kong Observatory (HKO)** – Weather, forecasts, warnings, sun/moon times, tides, pressure (no API key required)
