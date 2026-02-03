@@ -13,14 +13,17 @@ function ferryAisPopupHtml(v) {
   const name = (v.name || v.mmsi).replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const sog = v.sog != null && !isNaN(v.sog) ? `${Number(v.sog).toFixed(1)} kn` : '--';
   const cog = v.cog != null && !isNaN(v.cog) ? `${Math.round(v.cog)}°` : '--';
-  const timeStr = v.time ? new Date(v.time).toLocaleString() : '--';
-  return `<div class="ferry-ais-popup"><strong>${name}</strong><br>Speed: ${sog} · Course: ${cog}<br>Updated: ${timeStr}</div>`;
+  const timeStr = v.time ? new Date(v.time).toLocaleString(typeof getLocale === 'function' ? getLocale() : 'en') : '--';
+  const speedLabel = typeof t === 'function' ? t('speed') : 'Speed';
+  const courseLabel = typeof t === 'function' ? t('course') : 'Course';
+  const updatedLabel = typeof t === 'function' ? t('ferry.popupUpdated') : 'Updated';
+  return `<div class="ferry-ais-popup"><strong>${name}</strong><br>${speedLabel}: ${sog} · ${courseLabel}: ${cog}<br>${updatedLabel}: ${timeStr}</div>`;
 }
 
 /** List label: "Sea Supreme (docked)" or "Sea Supreme (8 kn)". */
 function ferryAisListLabel(v) {
   const name = v.name || v.mmsi;
-  if (v.sog != null && !isNaN(v.sog) && v.sog < 0.5) return `${name} (docked)`;
+  if (v.sog != null && !isNaN(v.sog) && v.sog < 0.5) return `${name} (${typeof t === 'function' ? t('docked') : 'docked'})`;
   if (v.sog != null && !isNaN(v.sog)) return `${name} (${Number(v.sog).toFixed(1)} kn)`;
   return name;
 }
@@ -198,20 +201,20 @@ function updateFerryAISOnly(ferryList) {
 
   if (ferryAisCaptionEl) {
     if (!hasKey) {
-      ferryAisCaptionEl.textContent = 'Set LAMMA_FERRY_AIS.AISSTREAM_API_KEY in api.js (API key from https://aisstream.io/apikeys) to show ferry positions.';
+      ferryAisCaptionEl.textContent = typeof t === 'function' ? t('ferry.positionsConfig') : 'Set LAMMA_FERRY_AIS.AISSTREAM_API_KEY in api.js (API key from https://aisstream.io/apikeys) to show ferry positions.';
       if (ferryAisListEl) ferryAisListEl.innerHTML = '';
     } else if (ferryList === null) {
-      ferryAisCaptionEl.textContent = 'Ferry positions unavailable (check AIS API).';
+      ferryAisCaptionEl.textContent = typeof t === 'function' ? t('ferry.positionsUnavailable') : 'Ferry positions unavailable (check AIS API).';
       if (ferryAisListEl) ferryAisListEl.innerHTML = '';
     } else {
       const list = Array.isArray(ferryList) ? ferryList : [];
       ferryAisCaptionEl.textContent = list.length
-        ? `${list.length} ferry${list.length !== 1 ? 's' : ''} in area (last 30 min)`
-        : 'No ferries in area (last 30 min)';
+        ? (typeof t === 'function' ? t('ferry.countInArea', { n: list.length }) : `${list.length} ferry(s) in area (last 30 min)`)
+        : (typeof t === 'function' ? t('ferry.noneInArea') : 'No ferries in area (last 30 min)');
       if (ferryAisListEl) {
         ferryAisListEl.innerHTML = list.length
           ? list.map(v => `<li>${ferryAisListLabel(v)}</li>`).join('')
-          : '<li>None</li>';
+          : '<li>' + (typeof t === 'function' ? t('ferry.none') : 'None') + '</li>';
       }
     }
   }
@@ -270,9 +273,10 @@ function updateWidgets(data) {
   document.getElementById('currentEmoji').textContent = currentEmoji;
   document.getElementById('locationEmoji').textContent = currentEmoji;
   document.getElementById('currentTemp').textContent = temp ?? '--';
-  document.getElementById('feelsLike').textContent = feelsLike != null ? `Feels like ${feelsLike}°C` : 'Feels like --°C';
+  const feelsLikeStr = typeof t === 'function' ? t('feelsLike') : 'Feels like';
+  document.getElementById('feelsLike').textContent = feelsLike != null ? `${feelsLikeStr} ${feelsLike}°C` : `${feelsLikeStr} --°C`;
   document.getElementById('weatherOverview').textContent =
-    data.flw?.forecastDesc || data.flw?.generalSituation || 'Loading...';
+    data.flw?.forecastDesc || data.flw?.generalSituation || (typeof t === 'function' ? t('loading') : 'Loading...');
 
   // Today's highs & lows (from fnd first day)
   const todayForecast = data.fnd?.weatherForecast?.[0];
@@ -284,7 +288,7 @@ function updateWidgets(data) {
     document.getElementById('todayForecast').textContent = '';
   }
 
-  // 9-day forecast
+  // 9-day forecast (day names, forecastWeather, forecastWind come from HKO API in selected language)
   const grid = document.getElementById('forecastGrid');
   grid.innerHTML = '';
   if (data.fnd?.weatherForecast) {
@@ -294,7 +298,7 @@ function updateWidgets(data) {
       card.className = 'forecast-card';
       card.innerHTML = `
         <div class="forecast-card__emoji">${emoji}</div>
-        <div class="forecast-card__day">${day.week || `Day ${i + 1}`}</div>
+        <div class="forecast-card__day">${day.week || (typeof t === 'function' ? t('dayNum', { n: i + 1 }) : `Day ${i + 1}`)}</div>
         <div class="forecast-card__temps">${day.forecastMaxtemp?.value ?? '--'}° / ${day.forecastMintemp?.value ?? '--'}°</div>
         <div class="forecast-card__weather">${day.forecastWeather || ''}</div>
         <div class="forecast-card__wind">${day.forecastWind || ''}</div>
@@ -312,9 +316,9 @@ function updateWidgets(data) {
     });
   }
   if (data.swt?.swt?.length) {
-    data.swt.swt.forEach(t => warnItems.push(t.desc || t));
+    data.swt.swt.forEach(w => warnItems.push(w.desc || w));
   }
-  warningsEl.textContent = warnItems.length ? warnItems.join(' • ') : 'No active warnings';
+  warningsEl.textContent = warnItems.length ? warnItems.join(' • ') : (typeof t === 'function' ? t('noWarnings') : 'No active warnings');
 
   // UV
   const uv = data.rhrread?.uvindex?.data?.[0];
@@ -348,7 +352,7 @@ function updateWidgets(data) {
       visibility = data.ltmv.data[0][visIdx];
     }
   }
-  document.getElementById('visibilityValue').textContent = visibility ?? 'Loading...';
+  document.getElementById('visibilityValue').textContent = visibility ?? (typeof t === 'function' ? t('loading') : 'Loading...');
 
   // Pressure (from HKO CSV or fallback to RYES)
   const pressure = data.pressure || getPressureFromRYES(data.ryes);
@@ -392,7 +396,8 @@ function updateWidgets(data) {
     if (dir?.nextSailings?.length) {
       listEl.innerHTML = dir.nextSailings.map(s => `<li>${s.timeStr}</li>`).join('');
       const first = dir.nextSailings[0];
-      if (nextTimeEl) nextTimeEl.textContent = first ? `Departs ${first.timeStr}` : '';
+      const departsStr = typeof t === 'function' ? t('departs') : 'Departs';
+      if (nextTimeEl) nextTimeEl.textContent = first ? `${departsStr} ${first.timeStr}` : '';
       if (countdownEl) {
         if (dir.nextDepartureIso) {
           countdownEl.setAttribute('data-next-departure', dir.nextDepartureIso);
@@ -402,7 +407,7 @@ function updateWidgets(data) {
         }
       }
     } else {
-      listEl.innerHTML = '<li>Timetable unavailable</li>';
+      listEl.innerHTML = '<li>' + (typeof t === 'function' ? t('timetableUnavailable') : 'Timetable unavailable') + '</li>';
       if (nextTimeEl) nextTimeEl.textContent = '';
       if (countdownEl) {
         countdownEl.textContent = '--';
@@ -428,20 +433,20 @@ function updateWidgets(data) {
   if (ferryAisCaptionEl) {
     const hasKey = typeof LAMMA_FERRY_AIS !== 'undefined' && (LAMMA_FERRY_AIS.AISSTREAM_API_KEY || '').trim().length > 0;
     if (!hasKey) {
-      ferryAisCaptionEl.textContent = 'Set LAMMA_FERRY_AIS.AISSTREAM_API_KEY in api.js (API key from https://aisstream.io/apikeys) to show ferry positions.';
+      ferryAisCaptionEl.textContent = typeof t === 'function' ? t('ferry.positionsConfig') : 'Set LAMMA_FERRY_AIS.AISSTREAM_API_KEY in api.js (API key from https://aisstream.io/apikeys) to show ferry positions.';
       if (ferryAisListEl) ferryAisListEl.innerHTML = '';
     } else if (data.aisFerries === null) {
-      ferryAisCaptionEl.textContent = 'Ferry positions unavailable (check AIS API).';
+      ferryAisCaptionEl.textContent = typeof t === 'function' ? t('ferry.positionsUnavailable') : 'Ferry positions unavailable (check AIS API).';
       if (ferryAisListEl) ferryAisListEl.innerHTML = '';
     } else {
       const list = Array.isArray(data.aisFerries) ? data.aisFerries : [];
       ferryAisCaptionEl.textContent = list.length
-        ? `${list.length} ferry${list.length !== 1 ? 's' : ''} in area (last 30 min)`
-        : 'No ferries in area (last 30 min)';
+        ? (typeof t === 'function' ? t('ferry.countInArea', { n: list.length }) : `${list.length} ferry(s) in area (last 30 min)`)
+        : (typeof t === 'function' ? t('ferry.noneInArea') : 'No ferries in area (last 30 min)');
       if (ferryAisListEl) {
         ferryAisListEl.innerHTML = list.length
           ? list.map(v => `<li>${ferryAisListLabel(v)}</li>`).join('')
-          : '<li>None</li>';
+          : '<li>' + (typeof t === 'function' ? t('ferry.none') : 'None') + '</li>';
       }
     }
   }
@@ -528,9 +533,12 @@ function updateWidgets(data) {
       }).addTo(radarMapInstance);
 
       const gen = data.radar.generated;
-      radarCaptionEl.textContent = gen ? `Latest frame · ${new Date(gen * 1000).toLocaleString()}` : 'Latest radar frame';
+      const locale = typeof getLocale === 'function' ? getLocale() : 'en';
+      radarCaptionEl.textContent = gen
+        ? (typeof t === 'function' ? t('radar.latestFrameAt', { date: new Date(gen * 1000).toLocaleString(locale) }) : `Latest frame · ${new Date(gen * 1000).toLocaleString()}`)
+        : (typeof t === 'function' ? t('radar.latestFrame') : 'Latest radar frame');
     } else {
-      radarCaptionEl.textContent = 'Radar unavailable';
+      radarCaptionEl.textContent = typeof t === 'function' ? t('radar.unavailable') : 'Radar unavailable';
     }
   }
 
@@ -558,16 +566,16 @@ function updateFerryCountdown() {
     const now = new Date();
     const ms = next - now;
     if (ms <= 0) {
-      el.textContent = 'Departed';
+      el.textContent = typeof t === 'function' ? t('departed') : 'Departed';
       return;
     }
     const totalMins = Math.floor(ms / 60000);
     const hours = Math.floor(totalMins / 60);
     const mins = totalMins % 60;
     if (hours > 0) {
-      el.textContent = `${hours}h ${mins}m`;
+      el.textContent = typeof t === 'function' ? t('countdown.hoursMins', { h: hours, m: mins }) : `${hours}h ${mins}m`;
     } else {
-      el.textContent = `${mins} min`;
+      el.textContent = typeof t === 'function' ? t('countdown.mins', { m: mins }) : `${mins} min`;
     }
   });
 }

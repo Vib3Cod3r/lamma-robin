@@ -12,20 +12,24 @@ function getPreferredTheme() {
   return 'dark';
 }
 
+function updateThemeButtonLabels() {
+  const btn = document.getElementById('themeToggle');
+  if (!btn || typeof t !== 'function') return;
+  const theme = document.documentElement.getAttribute('data-theme');
+  if (theme === 'light') {
+    btn.textContent = t('theme.dark');
+    btn.setAttribute('aria-label', t('aria.themeDark'));
+  } else {
+    btn.textContent = t('theme.light');
+    btn.setAttribute('aria-label', t('aria.themeLight'));
+  }
+}
+
 function applyTheme(theme) {
   const root = document.documentElement;
   root.setAttribute('data-theme', theme);
   localStorage.setItem(THEME_STORAGE_KEY, theme);
-  const btn = document.getElementById('themeToggle');
-  if (btn) {
-    if (theme === 'light') {
-      btn.textContent = '🌙 Dark';
-      btn.setAttribute('aria-label', 'Switch to dark theme');
-    } else {
-      btn.textContent = '☀️ Light';
-      btn.setAttribute('aria-label', 'Switch to light theme');
-    }
-  }
+  updateThemeButtonLabels();
 }
 
 function initTheme() {
@@ -53,8 +57,10 @@ async function loadWeather() {
     header?.classList.remove('loading');
   } catch (err) {
     console.error('Failed to load weather:', err);
-    document.getElementById('weatherOverview').textContent = 'Failed to load data. Retrying...';
-    document.getElementById('lastUpdated').textContent = `Error: ${err.message}`;
+    const overview = document.getElementById('weatherOverview');
+    const updated = document.getElementById('lastUpdated');
+    if (overview && typeof t === 'function') overview.textContent = t('failedLoad');
+    if (updated && typeof t === 'function') updated.textContent = `${t('error')}: ${err.message}`;
     header?.classList.remove('loading');
     setTimeout(loadWeather, 10000);
   }
@@ -70,6 +76,7 @@ function refreshFerryAIS() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  if (typeof initLang === 'function') initLang();
   loadWeather();
   setInterval(loadWeather, REFRESH_INTERVAL_MS);
   setInterval(updateFerryCountdown, 1000);
@@ -79,3 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   setInterval(refreshFerryAIS, AIS_REFRESH_MS);
 });
+
+function onLangChange() {
+  loadWeather();
+}

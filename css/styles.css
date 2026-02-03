@@ -115,10 +115,38 @@ body {
   margin-top: 0.5rem;
 }
 
-.theme-toggle {
+.header-controls {
   position: absolute;
   top: 1rem;
   right: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.lang-select {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--bg-widget);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.lang-select:hover,
+.lang-select:focus {
+  background: var(--bg-widget-solid);
+  border-color: var(--accent);
+  outline: none;
+}
+
+.theme-toggle {
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
   font-weight: 500;
@@ -633,9 +661,12 @@ body {
     padding: 1.5rem 0;
   }
 
-  .theme-toggle {
+  .header-controls {
     top: 0.5rem;
-    right: 0;
+  }
+
+  .theme-toggle,
+  .lang-select {
     padding: 0.4rem 0.6rem;
     font-size: 0.8rem;
   }
