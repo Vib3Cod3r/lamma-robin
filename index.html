@@ -224,6 +224,18 @@
           <span id="uvValue">--</span>
           <span class="stat-value__label" id="uvDesc">Loading</span>
         </div>
+        <div class="uv-bar" aria-hidden="true">
+          <div class="uv-bar__track" id="uvBarTrack">
+            <div class="uv-bar__fill" id="uvBarFill"></div>
+          </div>
+        </div>
+        <div class="uv-legend" aria-hidden="true">
+          <span class="uv-legend__item uv-legend__item--low">Low</span>
+          <span class="uv-legend__item uv-legend__item--moderate">Moderate</span>
+          <span class="uv-legend__item uv-legend__item--high">High</span>
+          <span class="uv-legend__item uv-legend__item--very-high">Very High</span>
+          <span class="uv-legend__item uv-legend__item--extreme">Extreme</span>
+        </div>
       </section>
 
       <!-- Humidity -->
@@ -232,6 +244,18 @@
         <div class="stat-value">
           <span id="humidityValue">--</span>
           <span class="stat-value__unit">%</span>
+        </div>
+        <div class="humidity-bar" aria-hidden="true">
+          <div class="humidity-bar__track" id="humidityBarTrack">
+            <div class="humidity-bar__fill" id="humidityBarFill"></div>
+          </div>
+        </div>
+        <div class="humidity-legend" aria-hidden="true">
+          <span class="humidity-legend__item humidity-legend__item--dry">Dry</span>
+          <span class="humidity-legend__item humidity-legend__item--comfortable">Comfortable</span>
+          <span class="humidity-legend__item humidity-legend__item--moderate">Moderate</span>
+          <span class="humidity-legend__item humidity-legend__item--humid">Humid</span>
+          <span class="humidity-legend__item humidity-legend__item--very-humid">Very Humid</span>
         </div>
       </section>
 
@@ -249,6 +273,17 @@
         <div class="stat-value">
           <span id="airValue">--</span>
           <span class="stat-value__label" id="airCategory">Loading</span>
+        </div>
+        <div class="air-bar" aria-hidden="true">
+          <div class="air-bar__track" id="airBarTrack">
+            <div class="air-bar__fill" id="airBarFill"></div>
+          </div>
+        </div>
+        <div class="air-legend" aria-hidden="true">
+          <span class="air-legend__item air-legend__item--good">Good</span>
+          <span class="air-legend__item air-legend__item--moderate">Moderate</span>
+          <span class="air-legend__item air-legend__item--unhealthy">Unhealthy</span>
+          <span class="air-legend__item air-legend__item--hazardous">Hazardous</span>
         </div>
       </section>
 
@@ -289,6 +324,16 @@
       <!-- Tides (Quarry Bay) -->
       <section class="widget" id="widget-tides">
         <h2 class="widget__title"><span class="widget__emoji" aria-hidden="true">🌊</span> <span data-i18n="widget.tides">Tides (Quarry Bay)</span></h2>
+        <div class="tide-visual" id="tideVisual" aria-hidden="true">
+          <div class="tide-bar" id="tideBar">
+            <span class="tide-bar__line tide-bar__line--sea" id="tideSeaLevelLine" title="Mean sea level"></span>
+            <span class="tide-bar__line tide-bar__line--next" id="tideNextLine" title="Next high/low"></span>
+          </div>
+          <div class="tide-bar-legend">
+            <span class="tide-bar-legend__sea">Sea level</span>
+            <span class="tide-bar-legend__next" id="tideNextLabel">Next: --</span>
+          </div>
+        </div>
         <ul class="tide-list" id="tideList">
           <li>Loading...</li>
         </ul>

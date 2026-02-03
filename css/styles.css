@@ -678,7 +678,217 @@ html[data-theme="light"] .widget--hero:hover {
   font-weight: 400;
 }
 
+/* Air Quality bar and legend */
+.air-bar {
+  margin-top: 0.5rem;
+}
+
+.air-bar__track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.air-bar__fill {
+  height: 100%;
+  width: 0;
+  min-width: 0;
+  border-radius: 3px;
+  transition: width 0.4s ease, background-color 0.3s ease;
+}
+
+.air-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  margin-top: 0.35rem;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.air-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.air-legend__item::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.air-legend__item--good::before { background: #00c853; }
+.air-legend__item--moderate::before { background: #ffeb3b; }
+.air-legend__item--unhealthy::before { background: #ff9800; }
+.air-legend__item--hazardous::before { background: #d32f2f; }
+
+/* UV Index bar and legend */
+.uv-bar {
+  margin-top: 0.5rem;
+}
+
+.uv-bar__track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.uv-bar__fill {
+  height: 100%;
+  width: 0;
+  min-width: 0;
+  border-radius: 3px;
+  transition: width 0.4s ease, background-color 0.3s ease;
+}
+
+.uv-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.6rem;
+  margin-top: 0.35rem;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+
+.uv-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.uv-legend__item::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.uv-legend__item--low::before { background: #00c853; }
+.uv-legend__item--moderate::before { background: #ffeb3b; }
+.uv-legend__item--high::before { background: #ff9800; }
+.uv-legend__item--very-high::before { background: #f44336; }
+.uv-legend__item--extreme::before { background: #7b1fa2; }
+
+/* Humidity bar and legend */
+.humidity-bar {
+  margin-top: 0.5rem;
+}
+
+.humidity-bar__track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.humidity-bar__fill {
+  height: 100%;
+  width: 0;
+  min-width: 0;
+  border-radius: 3px;
+  transition: width 0.4s ease, background-color 0.3s ease;
+}
+
+.humidity-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.6rem;
+  margin-top: 0.35rem;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+
+.humidity-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.humidity-legend__item::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+/* Dry=blue, Comfortable=green, Moderate=yellow, Humid=orange, Very Humid=red */
+.humidity-legend__item--dry::before { background: #2196f3; }
+.humidity-legend__item--comfortable::before { background: #00c853; }
+.humidity-legend__item--moderate::before { background: #ffeb3b; }
+.humidity-legend__item--humid::before { background: #ff9800; }
+.humidity-legend__item--very-humid::before { background: #f44336; }
+
 /* Tides */
+.tide-visual {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.tide-bar {
+  position: relative;
+  width: 28px;
+  height: 120px;
+  border-radius: 6px;
+  background: linear-gradient(to top, rgba(30, 64, 175, 0.5), rgba(59, 130, 246, 0.9));
+  flex-shrink: 0;
+}
+
+.tide-bar__line {
+  position: absolute;
+  left: -4px;
+  right: -4px;
+  height: 2px;
+  border-radius: 1px;
+  pointer-events: none;
+}
+
+.tide-bar__line--sea {
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
+}
+
+.tide-bar__line--next {
+  background: #fbbf24;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.3);
+}
+
+.tide-bar-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.tide-bar-legend__sea::before {
+  content: '';
+  display: inline-block;
+  width: 12px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.9);
+  vertical-align: middle;
+  margin-right: 0.35rem;
+}
+
+.tide-bar-legend__next::before {
+  content: '';
+  display: inline-block;
+  width: 12px;
+  height: 2px;
+  background: #fbbf24;
+  vertical-align: middle;
+  margin-right: 0.35rem;
+}
+
 .tide-list {
   list-style: none;
   display: flex;
@@ -707,14 +917,16 @@ html[data-theme="light"] .widget--hero:hover {
 
 .radar-map-wrap {
   display: flex;
+  flex-direction: column;
   gap: 1rem;
   align-items: stretch;
 }
 
 .radar-map {
-  flex: 1;
+  flex: 0 0 auto;
   min-width: 0;
   height: 400px;
+  min-height: 400px;
   border-radius: 12px;
   border: 1px solid var(--border);
   background: var(--bg-radar);
@@ -722,7 +934,7 @@ html[data-theme="light"] .widget--hero:hover {
 }
 
 .radar-legend {
-  width: 140px;
+  width: 100%;
   flex-shrink: 0;
   padding: 0.75rem 1rem;
   background: var(--bg-legend);
@@ -742,8 +954,9 @@ html[data-theme="light"] .widget--hero:hover {
 .radar-legend__list {
   list-style: none;
   display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
 }
 
 .radar-legend__item {
