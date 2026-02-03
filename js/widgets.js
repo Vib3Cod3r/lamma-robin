@@ -290,6 +290,73 @@ function parseTides(hlt) {
 }
 
 /**
+ * Parse time string "HH:MM" or "H:MM" to minutes since midnight (0–1439). Returns 0 if invalid.
+ * @param {string} timeStr
+ * @returns {number}
+ */
+function tideTimeToMinutes(timeStr) {
+  if (!timeStr || typeof timeStr !== 'string') return 0;
+  const parts = timeStr.trim().split(':');
+  if (parts.length < 2) return 0;
+  const h = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10);
+  if (isNaN(h) || isNaN(m)) return 0;
+  return Math.max(0, Math.min(1439, h * 60 + m));
+}
+
+/**
+ * Update the tide bar visual: range bar, mean sea level line, and next high/low line.
+ * @param {Array<{ timeStr: string, height: string, type: string }>} items - from parseTides
+ */
+function updateTideBar(items) {
+  const visualEl = document.getElementById('tideVisual');
+  const barEl = document.getElementById('tideBar');
+  const seaLineEl = document.getElementById('tideSeaLevelLine');
+  const nextLineEl = document.getElementById('tideNextLine');
+  const nextLabelEl = document.getElementById('tideNextLabel');
+  if (!visualEl || !barEl || !seaLineEl || !nextLineEl || !nextLabelEl) return;
+
+  if (!items || items.length === 0) {
+    visualEl.style.display = 'none';
+    return;
+  }
+
+  const heights = items.map(t => parseFloat(t.height)).filter(n => !isNaN(n));
+  if (heights.length === 0) {
+    visualEl.style.display = 'none';
+    return;
+  }
+
+  const min = Math.min(...heights);
+  const max = Math.max(...heights);
+  const mean = heights.reduce((a, b) => a + b, 0) / heights.length;
+  const range = Math.max(max - min, 0.1);
+
+  const nowMins = (new Date()).getHours() * 60 + (new Date()).getMinutes();
+  let nextItem = null;
+  for (let i = 0; i < items.length; i++) {
+    const mins = tideTimeToMinutes(items[i].timeStr);
+    if (mins > nowMins) {
+      nextItem = items[i];
+      break;
+    }
+  }
+  if (!nextItem) nextItem = items[0];
+
+  const seaLevelPercent = ((mean - min) / range) * 100;
+  const nextHeight = parseFloat(nextItem.height);
+  const nextValue = isNaN(nextHeight) ? mean : nextHeight;
+  const nextPercent = ((nextValue - min) / range) * 100;
+
+  visualEl.style.display = '';
+  seaLineEl.style.bottom = `${Math.max(0, Math.min(100, seaLevelPercent))}%`;
+  nextLineEl.style.bottom = `${Math.max(0, Math.min(100, nextPercent))}%`;
+  nextLabelEl.textContent = `Next: ${nextItem.type} ${nextItem.timeStr}`;
+  nextLineEl.setAttribute('title', `Next: ${nextItem.type} ${nextItem.timeStr} (${nextItem.height} m)`);
+  seaLineEl.setAttribute('title', `Mean sea level (${mean.toFixed(1)} m)`);
+}
+
+/**
  * Extract pressure from RYES (Weather and Radiation Report)
  */
 function getPressureFromRYES(ryes) {
@@ -442,23 +509,68 @@ function updateWidgets(data) {
 
   // UV
   const uv = data.rhrread?.uvindex?.data?.[0];
+  const uvBarFill = document.getElementById('uvBarFill');
+  const uvValue = uv?.value != null ? Number(uv.value) : null;
   document.getElementById('uvValue').textContent = uv?.value ?? '--';
   document.getElementById('uvDesc').textContent = uv?.desc ?? '';
+  if (uvValue != null && !isNaN(uvValue)) {
+    const percent = Math.min(100, (uvValue / 12) * 100);
+    const hue = 120 - (uvValue / 12) * 120; // 120 = green, 0 = red
+    if (uvBarFill) {
+      uvBarFill.style.width = percent + '%';
+      uvBarFill.style.backgroundColor = 'hsl(' + hue + ', 70%, 45%)';
+      uvBarFill.style.opacity = '1';
+    }
+  } else {
+    if (uvBarFill) {
+      uvBarFill.style.width = '0%';
+      uvBarFill.style.opacity = '0.5';
+    }
+  }
 
   // Humidity
   document.getElementById('humidityValue').textContent = humidity ?? '--';
+  const humidityBarFill = document.getElementById('humidityBarFill');
+  if (humidity != null && !isNaN(humidity)) {
+    const humidityNum = Number(humidity);
+    const percent = Math.min(100, humidityNum);
+    const hue = 200 - (humidityNum / 100) * 200; // 200=blue(dry), 0=red(very humid)
+    if (humidityBarFill) {
+      humidityBarFill.style.width = percent + '%';
+      humidityBarFill.style.backgroundColor = 'hsl(' + hue + ', 70%, 45%)';
+      humidityBarFill.style.opacity = '1';
+    }
+  } else {
+    if (humidityBarFill) {
+      humidityBarFill.style.width = '0%';
+      humidityBarFill.style.opacity = '0.5';
+    }
+  }
 
   // Wind (from today's forecast)
   const windText = todayForecast?.forecastWind || data.flw?.forecastDesc?.match(/wind[s]?[^.]*/i)?.[0] || '--';
   document.getElementById('windValue').textContent = windText;
 
   // Air Quality
+  const airBarFill = document.getElementById('airBarFill');
   if (data.airQuality) {
     document.getElementById('airValue').textContent = data.airQuality.aqi;
     document.getElementById('airCategory').textContent = data.airQuality.category;
+    const aqi = data.airQuality.aqi;
+    const percent = Math.min(100, (aqi / 500) * 100);
+    const hue = 120 - (aqi / 500) * 120; // 120 = green, 0 = red
+    if (airBarFill) {
+      airBarFill.style.width = percent + '%';
+      airBarFill.style.backgroundColor = 'hsl(' + hue + ', 70%, 45%)';
+      airBarFill.style.opacity = '1';
+    }
   } else {
     document.getElementById('airValue').textContent = 'N/A';
     document.getElementById('airCategory').textContent = 'Data unavailable';
+    if (airBarFill) {
+      airBarFill.style.width = '0%';
+      airBarFill.style.opacity = '0.5';
+    }
   }
 
   // Dew point
@@ -489,8 +601,10 @@ function updateWidgets(data) {
     const items = parseTides(data.tides);
     if (items.length) {
       tideListEl.innerHTML = items.map(t => `<li><span class="tide-time">${t.timeStr} ${t.type}</span><span class="tide-height">${t.height} m</span></li>`).join('');
+      updateTideBar(items);
     } else {
       tideListEl.innerHTML = '<li>Tide data unavailable</li>';
+      updateTideBar([]);
     }
   }
 
@@ -509,8 +623,10 @@ function updateWidgets(data) {
     sunStatusTextEl.setAttribute('data-i18n', key);
   }
   if (sunPositionIconEl) {
+    const isSunUp = sunStatus.status !== 'night';
     sunPositionIconEl.textContent = sunStatus.emoji;
     sunPositionIconEl.style.left = (sunStatus.progress * 100) + '%';
+    sunPositionIconEl.style.visibility = isSunUp ? 'visible' : 'hidden';
   }
 
   // Moon (phase + position + sky strip)
