@@ -413,6 +413,12 @@ function updateWidgets(data) {
 
   setFerryDirection('ferryList', 'ferryCountdown', 'ferryNextTime', ferryToYSW);
   setFerryDirection('ferryListToCentral', 'ferryCountdownToCentral', 'ferryNextTimeToCentral', ferryToCentral);
+  setFerryDirection('ferryListToSKW', 'ferryCountdownToSKW', 'ferryNextTimeToSKW', data.ferry?.toSokKwuWan);
+  setFerryDirection('ferryListSKWToCentral', 'ferryCountdownSKWToCentral', 'ferryNextTimeSKWToCentral', data.ferry?.sokKwuWanToCentral);
+  setFerryDirection('ferryListYSWToAberdeen', 'ferryCountdownYSWToAberdeen', 'ferryNextTimeYSWToAberdeen', data.ferry?.yswToAberdeen);
+  setFerryDirection('ferryListPakKokToAberdeen', 'ferryCountdownPakKokToAberdeen', 'ferryNextTimePakKokToAberdeen', data.ferry?.pakKokToAberdeen);
+  setFerryDirection('ferryListAberdeenToYSW', 'ferryCountdownAberdeenToYSW', 'ferryNextTimeAberdeenToYSW', data.ferry?.aberdeenToYSW);
+  setFerryDirection('ferryListPakKokToYSW', 'ferryCountdownPakKokToYSW', 'ferryNextTimePakKokToYSW', data.ferry?.pakKokToYSW);
   updateFerryCountdown();
 
   // Ferry AIS positions (last 30 min) - Doesnt work yet
@@ -539,7 +545,10 @@ function updateWidgets(data) {
  * Update one ferry countdown element. Call every second from app.js for both directions.
  */
 function updateFerryCountdown() {
-  const countdownIds = ['ferryCountdown', 'ferryCountdownToCentral'];
+  const countdownIds = [
+    'ferryCountdown', 'ferryCountdownToCentral', 'ferryCountdownToSKW', 'ferryCountdownSKWToCentral',
+    'ferryCountdownYSWToAberdeen', 'ferryCountdownPakKokToAberdeen', 'ferryCountdownAberdeenToYSW', 'ferryCountdownPakKokToYSW'
+  ];
   countdownIds.forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;

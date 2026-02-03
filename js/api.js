@@ -42,6 +42,42 @@ const FERRY_SUNDAY_YSW_TO_CENTRAL = [
   '05:30', '06:40', '07:30', '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:30', '22:30', '23:30'
 ];
 
+// Sok Kwu Wan ferry: Central ↔ Sok Kwu Wan (symbols ^, @ ignored)
+const FERRY_WEEKDAY_CENTRAL_TO_SKW = [
+  '07:20', '08:35', '10:20', '11:50', '13:50', '15:20', '16:50', '18:45', '20:20', '21:50', '23:30'
+];
+const FERRY_WEEKDAY_SKW_TO_CENTRAL = [
+  '06:40', '08:00', '09:35', '11:05', '12:40', '14:35', '16:05', '17:35', '19:35', '21:05', '22:40'
+];
+const FERRY_SUNDAY_CENTRAL_TO_SKW = [
+  '07:20', '08:35', '10:20', '11:50', '12:50', '13:50', '14:35', '15:20', '16:05', '16:50', '17:35', '18:45', '19:20', '20:20', '21:50', '23:30'
+];
+const FERRY_SUNDAY_SKW_TO_CENTRAL = [
+  '06:40', '08:00', '09:35', '11:05', '12:40', '13:50', '14:35', '15:20', '16:05', '16:50', '17:35', '18:35', '19:35', '20:20', '21:05', '22:40'
+];
+
+// Aberdeen / Pak Kok / Yung Shue Wan ferry (weekday + Sunday To YSW; Sunday To Aberdeen uses weekday times)
+const FERRY_WEEKDAY_ABERDEEN_TO_YSW = [
+  '06:00', '07:20', '08:40', '11:15', '13:45', '15:20', '16:30', '17:50', '19:15', '20:35', '22:00'
+];
+const FERRY_WEEKDAY_PAKKOK_TO_YSW = [
+  '06:25', '07:45', '09:05', '11:40', '14:10', '15:45', '16:55', '18:15', '19:40', '21:00', '22:25'
+];
+const FERRY_WEEKDAY_YSW_TO_ABERDEEN = [
+  '06:40', '08:00', '09:20', '12:00', '14:20', '15:55', '17:05', '18:35', '20:00', '21:10'
+];
+const FERRY_WEEKDAY_PAKKOK_TO_ABERDEEN = [
+  '06:50', '08:10', '09:30', '12:10', '14:30', '16:05', '17:15', '18:50', '20:10', '21:20'
+];
+const FERRY_SUNDAY_YSW_TO_ABERDEEN = FERRY_WEEKDAY_YSW_TO_ABERDEEN;
+const FERRY_SUNDAY_ABERDEEN_TO_YSW = [
+  '07:20', '08:50', '10:00', '11:20', '12:40', '15:10', '16:20', '17:50', '19:15', '20:35', '22:00'
+];
+const FERRY_SUNDAY_PAKKOK_TO_YSW = [
+  '07:45', '09:15', '10:25', '11:45', '13:05', '15:35', '16:45', '18:15', '19:40', '21:00', '22:25'
+];
+const FERRY_SUNDAY_PAKKOK_TO_ABERDEEN = FERRY_WEEKDAY_PAKKOK_TO_ABERDEEN;
+
 // Lamma ferry AIS: AISStream.io WebSocket. Known vessels (name + MMSI). Zones: 1 km radius.
 const LAMMA_FERRY_AIS = {
   AISSTREAM_API_KEY: '908f36fb8654bcf88515515d26a91c3e6a5ac6cf', // API key from https://aisstream.io/apikeys
@@ -276,9 +312,29 @@ async function fetchFerryTimetable() {
   const sailingsToYSW = sailingsFrom24h(timesToYSW);
   const sailingsToCentral = sailingsFrom24h(timesToCentral);
 
+  const timesToSKW = isSundayOrPH ? FERRY_SUNDAY_CENTRAL_TO_SKW : FERRY_WEEKDAY_CENTRAL_TO_SKW;
+  const timesFromSKW = isSundayOrPH ? FERRY_SUNDAY_SKW_TO_CENTRAL : FERRY_WEEKDAY_SKW_TO_CENTRAL;
+  const sailingsToSKW = sailingsFrom24h(timesToSKW);
+  const sailingsFromSKW = sailingsFrom24h(timesFromSKW);
+
+  const timesAberdeenToYSW = isSundayOrPH ? FERRY_SUNDAY_ABERDEEN_TO_YSW : FERRY_WEEKDAY_ABERDEEN_TO_YSW;
+  const timesPakKokToYSW = isSundayOrPH ? FERRY_SUNDAY_PAKKOK_TO_YSW : FERRY_WEEKDAY_PAKKOK_TO_YSW;
+  const timesYSWToAberdeen = isSundayOrPH ? FERRY_SUNDAY_YSW_TO_ABERDEEN : FERRY_WEEKDAY_YSW_TO_ABERDEEN;
+  const timesPakKokToAberdeen = isSundayOrPH ? FERRY_SUNDAY_PAKKOK_TO_ABERDEEN : FERRY_WEEKDAY_PAKKOK_TO_ABERDEEN;
+  const sailingsAberdeenToYSW = sailingsFrom24h(timesAberdeenToYSW);
+  const sailingsPakKokToYSW = sailingsFrom24h(timesPakKokToYSW);
+  const sailingsYSWToAberdeen = sailingsFrom24h(timesYSWToAberdeen);
+  const sailingsPakKokToAberdeen = sailingsFrom24h(timesPakKokToAberdeen);
+
   return {
     toYungShueWan: { ...buildNextSailings(sailingsToYSW, hk), hkDateStr: hk.dateStr },
-    toCentral: { ...buildNextSailings(sailingsToCentral, hk), hkDateStr: hk.dateStr }
+    toCentral: { ...buildNextSailings(sailingsToCentral, hk), hkDateStr: hk.dateStr },
+    toSokKwuWan: { ...buildNextSailings(sailingsToSKW, hk), hkDateStr: hk.dateStr },
+    sokKwuWanToCentral: { ...buildNextSailings(sailingsFromSKW, hk), hkDateStr: hk.dateStr },
+    yswToAberdeen: { ...buildNextSailings(sailingsYSWToAberdeen, hk), hkDateStr: hk.dateStr },
+    pakKokToAberdeen: { ...buildNextSailings(sailingsPakKokToAberdeen, hk), hkDateStr: hk.dateStr },
+    aberdeenToYSW: { ...buildNextSailings(sailingsAberdeenToYSW, hk), hkDateStr: hk.dateStr },
+    pakKokToYSW: { ...buildNextSailings(sailingsPakKokToYSW, hk), hkDateStr: hk.dateStr }
   };
 }
 

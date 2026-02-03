@@ -306,12 +306,66 @@ body {
 }
 
 /* Ferry widget */
-.ferry-direction {
+.ferry-schedule-box {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  background: var(--bg-card, rgba(255, 255, 255, 0.03));
+}
+
+.ferry-schedule-box:last-of-type {
   margin-bottom: 1.5rem;
 }
 
-.ferry-direction:last-child {
+.ferry-schedule-box__title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.ferry-directions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem 1rem;
+}
+
+.ferry-directions-grid--three {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 500px) {
+  .ferry-directions-grid--three {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.ferry-direction {
   margin-bottom: 0;
+}
+
+.ferry-directions-grid .ferry-direction:last-child {
+  margin-bottom: 0;
+}
+
+.ferry-directions-grid .ferry-direction__title {
+  font-size: 0.9rem;
+  margin-bottom: 0.35rem;
+}
+
+.ferry-directions-grid .ferry-countdown__value {
+  font-size: 1.25rem;
+}
+
+.ferry-directions-grid .ferry-list {
+  gap: 0.25rem 0.5rem;
+}
+
+.ferry-directions-grid .ferry-list li {
+  font-size: 0.85rem;
 }
 
 .ferry-direction__title {
