@@ -2,6 +2,7 @@
  * Hong Kong Observatory Open Data API
  * https://www.hko.gov.hk/en/education/weather/data-and-technology/00740-Open-Data-of-Hong-Kong-Observatory.html
  */
+/* exported setOnAISPositionsUpdate, fetchAllWeatherData */
 
 const HKO = {
   WEATHER_API: 'https://data.weather.gov.hk/weatherAPI/opendata/weather.php',
@@ -396,7 +397,7 @@ async function fetchRadar() {
  * @param {object} opts - { size, zoom, color, options }
  * @returns {string}
  */
-function buildRadarImageUrl(host, path, opts = {}) {
+function _buildRadarImageUrl(host, path, opts = {}) {
   const size = opts.size || 512;
   const zoom = opts.zoom || 4;
   const color = opts.color || 2;
@@ -410,7 +411,7 @@ function buildRadarImageUrl(host, path, opts = {}) {
 /**
  * Check if point (lat, lon) is within radiusKm of center (centerLat, centerLon)
  */
-function pointInCircle(lat, lon, centerLat, centerLon, radiusKm) {
+function _pointInCircle(lat, lon, centerLat, centerLon, radiusKm) {
   const R = 6371;
   const dLat = (lat - centerLat) * Math.PI / 180;
   const dLon = (lon - centerLon) * Math.PI / 180;
@@ -503,8 +504,6 @@ function getAISFerriesInArea() {
   if (!key) return null;
 
   const nameByMmsi = Object.fromEntries(LAMMA_FERRY_AIS.FERRIES.map(f => [f.mmsi, f.name]));
-  const { CENTRAL, LAMMA } = LAMMA_FERRY_AIS.ZONES;
-  const radiusKm = LAMMA_FERRY_AIS.ZONE_RADIUS_KM;
   const maxAgeMs = LAMMA_FERRY_AIS.POSITION_MAX_AGE_MINUTES * 60 * 1000;
   const now = Date.now();
 
