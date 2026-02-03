@@ -10,16 +10,24 @@
 <body>
   <div class="app">
     <header class="header">
-      <button type="button" class="theme-toggle" id="themeToggle" aria-label="Switch to light theme">☀️ Light</button>
-      <h1 class="header__title">Hong Kong Weather</h1>
+      <div class="header-controls">
+        <label for="langSelect" class="sr-only">Language</label>
+        <select id="langSelect" class="lang-select" aria-label="Select language">
+          <option value="en">🇬🇧 English</option>
+          <option value="zh-Hans">🇨🇳 简体中文 (Simplified Chinese)</option>
+          <option value="zh-Hant">🇭🇰 繁體中文 (Traditional Chinese)</option>
+        </select>
+        <button type="button" class="theme-toggle" id="themeToggle" aria-label="Switch to light theme">☀️ Light</button>
+      </div>
+      <h1 class="header__title" data-i18n="header.title">Hong Kong Weather</h1>
       <p class="header__location"><span id="locationEmoji">🌡️</span> <span id="location">Hong Kong</span></p>
-      <p class="header__updated" id="lastUpdated">Loading...</p>
+      <p class="header__updated" id="lastUpdated" data-i18n="header.loading">Loading...</p>
     </header>
 
     <main class="widgets">
       <!-- Primary: Current temp & today's forecast -->
       <section class="widget widget--hero" id="widget-temp">
-        <h2 class="sr-only">Current Conditions</h2>
+        <h2 class="sr-only" data-i18n="currentConditions">Current Conditions</h2>
         <div class="temp-display">
           <span class="temp-display__emoji" id="currentEmoji">🌡️</span>
           <div>
@@ -31,10 +39,10 @@
         
         <div class="high-low">
           <span class="high-low__item">
-            <strong>High</strong> <span id="tempHigh">--</span>°C
+            <strong data-i18n="high">High</strong> <span id="tempHigh">--</span>°C
           </span>
           <span class="high-low__item">
-            <strong>Low</strong> <span id="tempLow">--</span>°C
+            <strong data-i18n="low">Low</strong> <span id="tempLow">--</span>°C
           </span>
         </div>
         
@@ -44,7 +52,7 @@
 
       <!-- 9-day forecast -->
       <section class="widget widget--wide" id="widget-week">
-        <h2 class="widget__title">9-Day Forecast</h2>
+        <h2 class="widget__title" data-i18n="widget.forecast">9-Day Forecast</h2>
         <div class="forecast-grid" id="forecastGrid">
           <!-- Populated by JS -->
         </div>
@@ -52,32 +60,32 @@
 
       <!-- Lamma Island Ferry -->
       <section class="widget widget--wide" id="widget-ferry">
-        <h2 class="widget__title">Lamma Island Ferry</h2>
+        <h2 class="widget__title" data-i18n="widget.ferry">Lamma Island Ferry</h2>
 
         <!-- Box 1: Central ↔ Yung Shue Wan -->
         <div class="ferry-schedule-box">
-          <h3 class="ferry-schedule-box__title">Central ↔ Yung Shue Wan</h3>
+          <h3 class="ferry-schedule-box__title" data-i18n="ferry.box.centralYungShueWan">Central ↔ Yung Shue Wan</h3>
           <div class="ferry-directions-grid">
             <div class="ferry-direction">
-              <h4 class="ferry-direction__title">Central → Yung Shue Wan</h4>
+              <h4 class="ferry-direction__title" data-i18n="ferry.dir.centralToYungShueWan">Central → Yung Shue Wan</h4>
               <div class="ferry-countdown">
-                <span class="ferry-countdown__label">Next ferry in</span>
+                <span class="ferry-countdown__label" data-i18n="nextFerryIn">Next ferry in</span>
                 <span class="ferry-countdown__value" id="ferryCountdown">--</span>
               </div>
               <div class="ferry-next" id="ferryNextTime"></div>
-              <p class="ferry-subtitle">Next sailings (next 2 hours)</p>
+              <p class="ferry-subtitle" data-i18n="nextSailings">Next sailings (next 2 hours)</p>
               <ul class="ferry-list" id="ferryList">
                 <li>Loading...</li>
               </ul>
             </div>
             <div class="ferry-direction">
-              <h4 class="ferry-direction__title">Yung Shue Wan → Central</h4>
+              <h4 class="ferry-direction__title" data-i18n="ferry.dir.yungShueWanToCentral">Yung Shue Wan → Central</h4>
               <div class="ferry-countdown">
-                <span class="ferry-countdown__label">Next ferry in</span>
+                <span class="ferry-countdown__label" data-i18n="nextFerryIn">Next ferry in</span>
                 <span class="ferry-countdown__value" id="ferryCountdownToCentral">--</span>
               </div>
               <div class="ferry-next" id="ferryNextTimeToCentral"></div>
-              <p class="ferry-subtitle">Next sailings (next 2 hours)</p>
+              <p class="ferry-subtitle" data-i18n="nextSailings">Next sailings (next 2 hours)</p>
               <ul class="ferry-list" id="ferryListToCentral">
                 <li>Loading...</li>
               </ul>
@@ -87,28 +95,28 @@
 
         <!-- Box 2: Central ↔ Sok Kwu Wan -->
         <div class="ferry-schedule-box">
-          <h3 class="ferry-schedule-box__title">Central ↔ Sok Kwu Wan</h3>
+          <h3 class="ferry-schedule-box__title" data-i18n="ferry.box.centralSokKwuWan">Central ↔ Sok Kwu Wan</h3>
           <div class="ferry-directions-grid">
             <div class="ferry-direction">
-              <h4 class="ferry-direction__title">Central → Sok Kwu Wan</h4>
+              <h4 class="ferry-direction__title" data-i18n="ferry.dir.centralToSokKwuWan">Central → Sok Kwu Wan</h4>
               <div class="ferry-countdown">
-                <span class="ferry-countdown__label">Next ferry in</span>
+                <span class="ferry-countdown__label" data-i18n="nextFerryIn">Next ferry in</span>
                 <span class="ferry-countdown__value" id="ferryCountdownToSKW">--</span>
               </div>
               <div class="ferry-next" id="ferryNextTimeToSKW"></div>
-              <p class="ferry-subtitle">Next sailings (next 2 hours)</p>
+              <p class="ferry-subtitle" data-i18n="nextSailings">Next sailings (next 2 hours)</p>
               <ul class="ferry-list" id="ferryListToSKW">
                 <li>Loading...</li>
               </ul>
             </div>
             <div class="ferry-direction">
-              <h4 class="ferry-direction__title">Sok Kwu Wan → Central</h4>
+              <h4 class="ferry-direction__title" data-i18n="ferry.dir.sokKwuWanToCentral">Sok Kwu Wan → Central</h4>
               <div class="ferry-countdown">
-                <span class="ferry-countdown__label">Next ferry in</span>
+                <span class="ferry-countdown__label" data-i18n="nextFerryIn">Next ferry in</span>
                 <span class="ferry-countdown__value" id="ferryCountdownSKWToCentral">--</span>
               </div>
               <div class="ferry-next" id="ferryNextTimeSKWToCentral"></div>
-              <p class="ferry-subtitle">Next sailings (next 2 hours)</p>
+              <p class="ferry-subtitle" data-i18n="nextSailings">Next sailings (next 2 hours)</p>
               <ul class="ferry-list" id="ferryListSKWToCentral">
                 <li>Loading...</li>
               </ul>
@@ -118,28 +126,28 @@
 
         <!-- Box 3: Yung Shue Wan → Pak Kok → Aberdeen -->
         <div class="ferry-schedule-box">
-          <h3 class="ferry-schedule-box__title">Yung Shue Wan → Pak Kok → Aberdeen</h3>
+          <h3 class="ferry-schedule-box__title" data-i18n="ferry.box.yswPakKokAberdeen">Yung Shue Wan → Pak Kok → Aberdeen</h3>
           <div class="ferry-directions-grid">
             <div class="ferry-direction">
-              <h4 class="ferry-direction__title">Yung Shue Wan → Aberdeen</h4>
+              <h4 class="ferry-direction__title" data-i18n="ferry.dir.yungShueWanToAberdeen">Yung Shue Wan → Aberdeen</h4>
               <div class="ferry-countdown">
-                <span class="ferry-countdown__label">Next ferry in</span>
+                <span class="ferry-countdown__label" data-i18n="nextFerryIn">Next ferry in</span>
                 <span class="ferry-countdown__value" id="ferryCountdownYSWToAberdeen">--</span>
               </div>
               <div class="ferry-next" id="ferryNextTimeYSWToAberdeen"></div>
-              <p class="ferry-subtitle">Next sailings (next 2 hours)</p>
+              <p class="ferry-subtitle" data-i18n="nextSailings">Next sailings (next 2 hours)</p>
               <ul class="ferry-list" id="ferryListYSWToAberdeen">
                 <li>Loading...</li>
               </ul>
             </div>
             <div class="ferry-direction">
-              <h4 class="ferry-direction__title">Pak Kok → Aberdeen</h4>
+              <h4 class="ferry-direction__title" data-i18n="ferry.dir.pakKokToAberdeen">Pak Kok → Aberdeen</h4>
               <div class="ferry-countdown">
-                <span class="ferry-countdown__label">Next ferry in</span>
+                <span class="ferry-countdown__label" data-i18n="nextFerryIn">Next ferry in</span>
                 <span class="ferry-countdown__value" id="ferryCountdownPakKokToAberdeen">--</span>
               </div>
               <div class="ferry-next" id="ferryNextTimePakKokToAberdeen"></div>
-              <p class="ferry-subtitle">Next sailings (next 2 hours)</p>
+              <p class="ferry-subtitle" data-i18n="nextSailings">Next sailings (next 2 hours)</p>
               <ul class="ferry-list" id="ferryListPakKokToAberdeen">
                 <li>Loading...</li>
               </ul>
@@ -149,28 +157,28 @@
 
         <!-- Box 4: Aberdeen → Pak Kok → Yung Shue Wan -->
         <div class="ferry-schedule-box">
-          <h3 class="ferry-schedule-box__title">Aberdeen → Pak Kok → Yung Shue Wan</h3>
+          <h3 class="ferry-schedule-box__title" data-i18n="ferry.box.aberdeenPakKokYsw">Aberdeen → Pak Kok → Yung Shue Wan</h3>
           <div class="ferry-directions-grid">
             <div class="ferry-direction">
-              <h4 class="ferry-direction__title">Aberdeen → Pak Kok</h4>
+              <h4 class="ferry-direction__title" data-i18n="ferry.dir.aberdeenToPakKok">Aberdeen → Pak Kok</h4>
               <div class="ferry-countdown">
-                <span class="ferry-countdown__label">Next ferry in</span>
+                <span class="ferry-countdown__label" data-i18n="nextFerryIn">Next ferry in</span>
                 <span class="ferry-countdown__value" id="ferryCountdownAberdeenToYSW">--</span>
               </div>
               <div class="ferry-next" id="ferryNextTimeAberdeenToYSW"></div>
-              <p class="ferry-subtitle">Next sailings (next 2 hours)</p>
+              <p class="ferry-subtitle" data-i18n="nextSailings">Next sailings (next 2 hours)</p>
               <ul class="ferry-list" id="ferryListAberdeenToYSW">
                 <li>Loading...</li>
               </ul>
             </div>
             <div class="ferry-direction">
-              <h4 class="ferry-direction__title">Pak Kok → Yung Shue Wan</h4>
+              <h4 class="ferry-direction__title" data-i18n="ferry.dir.pakKokToYungShueWan">Pak Kok → Yung Shue Wan</h4>
               <div class="ferry-countdown">
-                <span class="ferry-countdown__label">Next ferry in</span>
+                <span class="ferry-countdown__label" data-i18n="nextFerryIn">Next ferry in</span>
                 <span class="ferry-countdown__value" id="ferryCountdownPakKokToYSW">--</span>
               </div>
               <div class="ferry-next" id="ferryNextTimePakKokToYSW"></div>
-              <p class="ferry-subtitle">Next sailings (next 2 hours)</p>
+              <p class="ferry-subtitle" data-i18n="nextSailings">Next sailings (next 2 hours)</p>
               <ul class="ferry-list" id="ferryListPakKokToYSW">
                 <li>Loading...</li>
               </ul>
@@ -179,7 +187,7 @@
         </div>
 
         <div class="ferry-ais">
-          <h3 class="ferry-direction__title">Ferry positions (last 30 min)</h3>
+          <h3 class="ferry-direction__title" data-i18n="widget.ferryPositions">Ferry positions (last 30 min)</h3>
           <p class="ferry-ais-caption" id="ferryAisCaption">Configure AIS API to show ferry positions</p>
           <div id="ferryAisMap" class="ferry-ais-map"></div>
           <ul class="ferry-ais-list" id="ferryAisList"></ul>
@@ -188,13 +196,13 @@
 
       <!-- Weather warnings -->
       <section class="widget widget--wide widget--warning" id="widget-warnings">
-        <h2 class="widget__title">Weather Alerts</h2>
+        <h2 class="widget__title" data-i18n="widget.warnings">Weather Alerts</h2>
         <div id="warningsContent">No active warnings</div>
       </section>
 
       <!-- UV Index -->
       <section class="widget" id="widget-uv">
-        <h2 class="widget__title">UV Index</h2>
+        <h2 class="widget__title" data-i18n="widget.uv">UV Index</h2>
         <div class="stat-value">
           <span id="uvValue">--</span>
           <span class="stat-value__label" id="uvDesc">Loading</span>
@@ -203,7 +211,7 @@
 
       <!-- Humidity -->
       <section class="widget" id="widget-humidity">
-        <h2 class="widget__title">Humidity</h2>
+        <h2 class="widget__title" data-i18n="widget.humidity">Humidity</h2>
         <div class="stat-value">
           <span id="humidityValue">--</span>
           <span class="stat-value__unit">%</span>
@@ -212,7 +220,7 @@
 
       <!-- Wind -->
       <section class="widget" id="widget-wind">
-        <h2 class="widget__title">Wind</h2>
+        <h2 class="widget__title" data-i18n="widget.wind">Wind</h2>
         <div class="stat-value">
           <span id="windValue">Loading...</span>
         </div>
@@ -220,7 +228,7 @@
 
       <!-- Air Quality -->
       <section class="widget" id="widget-air">
-        <h2 class="widget__title">Air Quality</h2>
+        <h2 class="widget__title" data-i18n="widget.air">Air Quality</h2>
         <div class="stat-value">
           <span id="airValue">--</span>
           <span class="stat-value__label" id="airCategory">Loading</span>
@@ -229,7 +237,7 @@
 
       <!-- Dew Point -->
       <section class="widget" id="widget-dewpoint">
-        <h2 class="widget__title">Dew Point</h2>
+        <h2 class="widget__title" data-i18n="widget.dewpoint">Dew Point</h2>
         <div class="stat-value">
           <span id="dewpointValue">--</span>
           <span class="stat-value__unit">°C</span>
@@ -238,7 +246,7 @@
 
       <!-- Visibility -->
       <section class="widget" id="widget-visibility">
-        <h2 class="widget__title">Visibility</h2>
+        <h2 class="widget__title" data-i18n="widget.visibility">Visibility</h2>
         <div class="stat-value">
           <span id="visibilityValue">Loading...</span>
         </div>
@@ -246,7 +254,7 @@
 
       <!-- Pressure -->
       <section class="widget" id="widget-pressure">
-        <h2 class="widget__title">Pressure</h2>
+        <h2 class="widget__title" data-i18n="widget.pressure">Pressure</h2>
         <div class="stat-value">
           <span id="pressureValue">--</span>
         </div>
@@ -254,7 +262,7 @@
 
       <!-- Sea Temperature -->
       <section class="widget" id="widget-sea">
-        <h2 class="widget__title">Sea Temperature</h2>
+        <h2 class="widget__title" data-i18n="widget.sea">Sea Temperature</h2>
         <div class="stat-value">
           <span id="seaTempValue">--</span>
           <span class="stat-value__unit">°C</span>
@@ -263,7 +271,7 @@
 
       <!-- Tides (Quarry Bay) -->
       <section class="widget" id="widget-tides">
-        <h2 class="widget__title">Tides (Quarry Bay)</h2>
+        <h2 class="widget__title" data-i18n="widget.tides">Tides (Quarry Bay)</h2>
         <ul class="tide-list" id="tideList">
           <li>Loading...</li>
         </ul>
@@ -271,14 +279,14 @@
 
       <!-- Sunrise & Sunset -->
       <section class="widget" id="widget-sun">
-        <h2 class="widget__title">Sun</h2>
+        <h2 class="widget__title" data-i18n="widget.sun">Sun</h2>
         <div class="sun-moon">
           <div class="sun-moon__item">
-            <span class="sun-moon__label">Sunrise</span>
+            <span class="sun-moon__label" data-i18n="sunrise">Sunrise</span>
             <span id="sunriseValue">--</span>
           </div>
           <div class="sun-moon__item">
-            <span class="sun-moon__label">Sunset</span>
+            <span class="sun-moon__label" data-i18n="sunset">Sunset</span>
             <span id="sunsetValue">--</span>
           </div>
         </div>
@@ -286,14 +294,14 @@
 
       <!-- Moon Rise & Set -->
       <section class="widget" id="widget-moon">
-        <h2 class="widget__title">Moon</h2>
+        <h2 class="widget__title" data-i18n="widget.moon">Moon</h2>
         <div class="sun-moon">
           <div class="sun-moon__item">
-            <span class="sun-moon__label">Moonrise</span>
+            <span class="sun-moon__label" data-i18n="moonrise">Moonrise</span>
             <span id="moonriseValue">--</span>
           </div>
           <div class="sun-moon__item">
-            <span class="sun-moon__label">Moonset</span>
+            <span class="sun-moon__label" data-i18n="moonset">Moonset</span>
             <span id="moonsetValue">--</span>
           </div>
         </div>
@@ -301,33 +309,33 @@
 
       <!-- Weather radar (RainViewer on Leaflet map, Hong Kong) -->
       <section class="widget widget--wide" id="widget-radar">
-        <h2 class="widget__title">Weather Radar</h2>
+        <h2 class="widget__title" data-i18n="widget.radar">Weather Radar</h2>
         <div class="radar-container">
           <div class="radar-map-wrap">
             <div id="radarMap" class="radar-map"></div>
             <div class="radar-legend">
-              <h3 class="radar-legend__title">Precipitation</h3>
+              <h3 class="radar-legend__title" data-i18n="radar.precipitation">Precipitation</h3>
               <ul class="radar-legend__list">
                 <li class="radar-legend__item">
                   <span class="radar-legend__swatch" style="background: #b2f2ff;"></span>
-                  <span>Light</span>
+                  <span data-i18n="radar.light">Light</span>
                 </li>
                 <li class="radar-legend__item">
                   <span class="radar-legend__swatch" style="background: #4888ff;"></span>
-                  <span>Moderate</span>
+                  <span data-i18n="radar.moderate">Moderate</span>
                 </li>
                 <li class="radar-legend__item">
                   <span class="radar-legend__swatch" style="background: #ffaa00;"></span>
-                  <span>Heavy</span>
+                  <span data-i18n="radar.heavy">Heavy</span>
                 </li>
                 <li class="radar-legend__item">
                   <span class="radar-legend__swatch" style="background: #c10000;"></span>
-                  <span>Intense</span>
+                  <span data-i18n="radar.intense">Intense</span>
                 </li>
               </ul>
             </div>
           </div>
-          <p class="radar-caption" id="radarCaption">Loading radar...</p>
+          <p class="radar-caption" id="radarCaption" data-i18n="radar.loading">Loading radar...</p>
           <p class="radar-attribution">
             <a href="https://www.rainviewer.com/" target="_blank" rel="noopener noreferrer">Radar by RainViewer</a>
             · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap</a>
@@ -338,6 +346,7 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="js/i18n.js"></script>
   <script src="js/api.js"></script>
   <script src="js/widgets.js"></script>
   <script src="js/app.js"></script>

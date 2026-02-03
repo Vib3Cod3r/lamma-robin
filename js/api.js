@@ -110,7 +110,8 @@ const LAMMA_FERRY_AIS = {
 async function fetchWeather(dataType) {
   const url = new URL(HKO.WEATHER_API);
   url.searchParams.set('dataType', dataType);
-  url.searchParams.set('lang', HKO.LANG);
+  const lang = typeof getHKOLang === 'function' ? getHKOLang() : HKO.LANG;
+  url.searchParams.set('lang', lang);
 
   const response = await fetch(url);
   if (!response.ok) throw new Error(`Weather API error: ${response.status}`);
@@ -126,7 +127,8 @@ async function fetchWeather(dataType) {
 async function fetchOpenData(dataType, params = {}) {
   const url = new URL(HKO.OPENDATA_API);
   url.searchParams.set('dataType', dataType);
-  url.searchParams.set('lang', HKO.LANG);
+  const lang = typeof getHKOLang === 'function' ? getHKOLang() : HKO.LANG;
+  url.searchParams.set('lang', lang);
   url.searchParams.set('rformat', params.rformat || 'json');
 
   Object.entries(params).forEach(([key, value]) => {
